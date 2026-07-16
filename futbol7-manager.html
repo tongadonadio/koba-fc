@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚽ Fútbol 7 Manager</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --bg2:      #161b22;
+  --card:     #21262d;
+  --border:   #30363d;
+  --txt:      #e6edf3;
+  --txt2:     #8b949e;
+  --blue:     #58a6ff;
+  --green:    #3fb950;
+  --red:      #f85149;
+  --orange:   #f0883e;
+  --p-dark:   #1a4a1a;
+  --p-light:  #1e5c1e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;-webkit-text-size-adjust:100%}
+
+/* ── HEADER ── */
+header{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;gap:10px;
+  position:sticky;top:0;z-index:100;flex-wrap:wrap;
+}
+#tn-display{font-size:1.2rem;font-weight:700;cursor:pointer;border-bottom:2px dashed transparent;transition:border-color .2s;white-space:nowrap}
+#tn-display:hover{border-color:var(--blue)}
+#tn-input{font-size:1.2rem;font-weight:700;background:transparent;border:none;border-bottom:2px solid var(--blue);color:var(--txt);outline:none;display:none;width:180px}
+.spacer{flex:1}
+.ftabs{display:flex;gap:3px;background:var(--bg);padding:3px;border-radius:8px}
+.ftab{padding:5px 11px;border-radius:5px;border:none;background:transparent;color:var(--txt2);cursor:pointer;font-size:.8rem;font-weight:700;transition:all .15s}
+.ftab.active{background:var(--green);color:#000}
+.ftab:hover:not(.active){background:var(--card);color:var(--txt)}
+.mtabs{display:flex;gap:3px;background:var(--bg);padding:3px;border-radius:8px}
+.mtab{padding:6px 13px;border-radius:5px;border:none;background:transparent;color:var(--txt2);cursor:pointer;font-size:.8rem;font-weight:700;transition:all .15s}
+.mtab.active{background:var(--blue);color:#000}
+.mtab:hover:not(.active){background:var(--card);color:var(--txt)}
+
+/* ── MAIN LAYOUT ── */
+.layout{display:grid;grid-template-columns:250px 1fr 230px;gap:12px;padding:12px;min-height:calc(100vh - 56px)}
+.slayout{display:grid;grid-template-columns:250px 1fr 230px;gap:12px;padding:12px;min-height:calc(100vh - 56px)}
+
+/* ── SIDEBAR ── */
+.sidebar{display:flex;flex-direction:column;gap:10px}
+.sh{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.stitle{font-size:.75rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em}
+.btn-add{background:var(--green);color:#000;border:none;border-radius:6px;padding:4px 10px;font-size:.75rem;font-weight:700;cursor:pointer;transition:opacity .2s}
+.btn-add:hover{opacity:.8}
+.plist{display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:calc(100vh - 110px);padding-right:2px}
+
+/* ── PLAYER CARD ── */
+.pcard{
+  background:var(--card);border:1px solid var(--border);border-radius:9px;
+  padding:7px 9px;display:flex;align-items:center;gap:7px;cursor:grab;
+  transition:all .15s;position:relative;user-select:none;
+}
+.pcard:hover{border-color:var(--blue);transform:translateX(2px)}
+.pcard.dragging{opacity:.4;cursor:grabbing}
+.pcard.in-lineup{opacity:.55;background:var(--bg2)}
+.pcard.in-lineup::after{content:'✓';position:absolute;right:28px;font-size:.7rem;color:var(--green);font-weight:700}
+.pcard.not-avail{opacity:1}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.7rem;flex-shrink:0}
+.pi{flex:1;min-width:0}
+.pname{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pmeta{display:flex;align-items:center;gap:4px;margin-top:2px}
+.ptag{font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:3px}
+.pnum{font-size:.68rem;color:var(--txt2)}
+.prat{font-size:.82rem;font-weight:700;flex-shrink:0}
+.avail-dot{width:9px;height:9px;border-radius:50%;background:var(--green);cursor:pointer;flex-shrink:0;transition:transform .15s,background .15s;border:none;padding:0}
+.avail-dot.off{background:var(--red)}
+.avail-dot:hover{transform:scale(1.5)}
+.pactions{display:none;gap:3px;flex-shrink:0}
+.pcard:hover .pactions{display:flex}
+.bico{background:none;border:none;color:var(--txt2);cursor:pointer;padding:2px 4px;border-radius:3px;font-size:.72rem;transition:all .15s}
+.bico:hover{background:var(--border);color:var(--txt)}
+
+/* ── PITCH CONTAINER ── */
+.pc{display:flex;flex-direction:column;align-items:center;gap:10px}
+.pitch{
+  position:relative;width:100%;max-width:460px;
+  aspect-ratio:65/100;max-height:calc(100vh - 160px);
+  border-radius:10px;overflow:hidden;
+  box-shadow:0 0 60px rgba(0,160,0,.08),0 0 0 1px var(--border);
+}
+.pstripes{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,var(--p-dark) 0%,var(--p-dark) 14.28%,var(--p-light) 14.28%,var(--p-light) 28.57%)}
+.pmarks{position:absolute;inset:0}
+.pmarks svg{width:100%;height:100%}
+.pitch.full{box-shadow:0 0 60px rgba(63,185,80,.25),0 0 0 1px var(--green)}
+
+/* ── POSITION SLOTS ── */
+.slot{
+  position:absolute;transform:translate(-50%,-50%);
+  width:58px;height:58px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:10;
+}
+.slot-inner{
+  width:52px;height:52px;border-radius:50%;
+  border:2px dashed rgba(255,255,255,.3);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.45);transition:all .2s;position:relative;
+}
+.slot.empty{cursor:pointer}
+.slot.filled{cursor:pointer}
+.slot.drag-over .slot-inner{border-color:#fff;border-style:solid;background:rgba(255,255,255,.12);transform:scale(1.12)}
+.slot.filled .slot-inner{border-style:solid;border-width:3px}
+.slot.filled:hover .slot-inner{filter:brightness(1.15)}
+.slot-lbl{font-size:.52rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.slot-ini{font-size:.72rem;font-weight:700;line-height:1}
+.slot-nm{font-size:.52rem;margin-top:1px;text-align:center;width:48px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot-rm{
+  position:absolute;top:-5px;right:-5px;width:18px;height:18px;
+  border-radius:50%;background:var(--red);border:none;color:#fff;
+  font-size:.55rem;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:20;
+}
+.slot:hover .slot-rm{display:flex}
+.slot-rat{position:absolute;bottom:-3px;right:-3px;background:rgba(0,0,0,.85);border-radius:3px;padding:1px 3px;font-size:.52rem;font-weight:700}
+@keyframes popin{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}60%{transform:translate(-50%,-50%) scale(1.1)}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.slot.just-filled{animation:popin .3s ease forwards}
+
+/* ── BENCH ── */
+.bench{width:100%;max-width:460px}
+.bench-title{font-size:.75rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.bench-players{display:flex;gap:6px;flex-wrap:wrap}
+.bench-chip{
+  display:flex;align-items:center;gap:5px;background:var(--card);
+  border:1px solid var(--border);border-radius:20px;padding:4px 10px;
+  font-size:.75rem;cursor:default;
+}
+.bench-chip.unavail{opacity:.45}
+.bench-chip .bav{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;flex-shrink:0}
+
+/* ── STRATEGY ── */
+.steps-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:center;width:100%;max-width:460px;min-height:30px}
+.step-btn{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--card);color:var(--txt2);font-size:.72rem;font-weight:700;cursor:pointer;transition:all .15s;flex-shrink:0}
+.step-btn.active{border-color:var(--blue);color:var(--blue);background:rgba(88,166,255,.18)}
+.step-arrow-sep{color:var(--txt2);font-size:.7rem}
+.play-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap;width:100%;max-width:460px;justify-content:center}
+.chk{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--txt2);cursor:pointer;user-select:none}
+.tk-arrows{position:absolute;inset:0;pointer-events:none;z-index:9;width:100%;height:100%}
+.tk{
+  position:absolute;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:grab;z-index:11;
+  border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);touch-action:none;
+  transition:left .9s cubic-bezier(.4,0,.2,1), top .9s cubic-bezier(.4,0,.2,1);
+}
+.tk.dragging{cursor:grabbing;transition:none;z-index:15}
+.tk-ini{font-size:.68rem;font-weight:700;color:#fff}
+.tk-nm{font-size:.44rem;color:rgba(255,255,255,.9);margin-top:1px;white-space:nowrap}
+.playcard{background:var(--card);border:1px solid var(--border);border-radius:9px;padding:8px 9px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:all .15s}
+.playcard:hover{border-color:var(--blue)}
+.playcard.active{border-color:var(--blue);background:var(--bg2)}
+.playcard .pi{flex:1;min-width:0}
+.playcard .pname{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.playcard .psub{font-size:.62rem;color:var(--txt2)}
+.pmname-input{width:100%;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--txt);font-size:.82rem;font-weight:600;outline:none;margin-bottom:8px}
+
+/* ── RIGHT PANEL ── */
+.rpanel{display:flex;flex-direction:column;gap:10px}
+.pnlcard{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
+.pnltitle{font-size:.72rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.li{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border)}
+.li:last-child{border:none}
+.li-pos{font-size:.6rem;font-weight:700;width:26px;text-align:center;padding:2px 3px;border-radius:3px}
+.li-num{font-size:.68rem;color:var(--txt2);width:18px;text-align:center}
+.li-name{flex:1;font-size:.75rem}
+.li-rat{font-size:.75rem;font-weight:700}
+.st{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.sl{font-size:.75rem;color:var(--txt2)}
+.sv{font-size:.82rem;font-weight:700}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;width:370px;max-width:92vw;max-height:90vh;overflow-y:auto}
+@keyframes mdin{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}
+.overlay.open .modal{animation:mdin .18s ease}
+.mtitle{font-size:1rem;font-weight:700;margin-bottom:16px}
+.fg{margin-bottom:12px}
+.flbl{font-size:.75rem;color:var(--txt2);margin-bottom:4px;display:block}
+.fi{width:100%;background:var(--card);border:1px solid var(--border);border-radius:7px;padding:7px 9px;color:var(--txt);font-size:.85rem;outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--blue)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ract{display:flex;align-items:center;gap:8px}
+.ract input[type=range]{flex:1;accent-color:var(--green);height:4px}
+.rdisplay{font-size:1rem;font-weight:700;width:28px;text-align:center}
+.badge-opts{display:flex;gap:6px;flex-wrap:wrap}
+.bopt{padding:3px 9px;border-radius:20px;border:2px solid var(--border);background:transparent;color:var(--txt2);cursor:pointer;font-size:.72rem;transition:all .15s}
+.bopt.sel{border-color:var(--blue);color:var(--blue)}
+.mactions{display:flex;gap:7px;justify-content:flex-end;margin-top:16px}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.8}
+.btn-p{background:var(--blue);color:#000}
+.btn-d{background:var(--red);color:#fff}
+.btn-s{background:var(--card);color:var(--txt);border:1px solid var(--border)}
+.psgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.pscard{background:var(--card);border:2px solid var(--border);border-radius:9px;padding:8px;cursor:pointer;text-align:center;transition:all .15s}
+.pscard:hover{border-color:var(--blue);transform:scale(1.03)}
+.pscard.ps-unavail{opacity:.45}
+.pscard .psa{width:38px;height:38px;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.65rem}
+.pscard .psn{font-size:.72rem;font-weight:600}
+.pscard .psp{font-size:.62rem;color:var(--txt2)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:18px;right:18px;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-size:.82rem;z-index:2000;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+@keyframes tin{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.toast{animation:tin .25s ease}
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:14px;text-align:center;padding:20px}
+.lo-icon{font-size:2.8rem}
+.lo-spin{animation:spin 1.2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lo-msg{font-size:.95rem;color:var(--txt2);max-width:360px;line-height:1.6}
+.lo-title{font-size:1.1rem;font-weight:700}
+.lo-code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-family:monospace;font-size:.82rem}
+
+/* ── PITCH VIGNETTE (profundidad tipo estadio) ── */
+.pitch::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.52) 100%);pointer-events:none;z-index:3}
+.pitch.full{box-shadow:0 0 80px rgba(63,185,80,.3),0 0 0 2px var(--green)}
+
+/* ── SLOT HOVER GLOW ── */
+.slot.filled:hover .slot-inner{filter:brightness(1.18);box-shadow:0 0 14px rgba(255,255,255,.15)}
+
+/* ── SYNC DOT ANIMATION ── */
+#sync-status{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--txt2);white-space:nowrap}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sync-dot.online{background:var(--green);animation:pulse-dot 2.5s ease-in-out infinite}
+.sync-dot.offline{background:var(--red)}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+
+/* ── PLAYER FULL NAME SUBTITLE ── */
+.pfull{font-size:.58rem;color:var(--txt2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── PLAYER LIST SECTION HEADERS ── */
+.list-sep{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:8px 2px 3px;flex-shrink:0;display:flex;align-items:center;gap:6px}
+.list-sep::after{content:'';flex:1;height:1px;background:var(--border)}
+.list-sep.asisten{color:var(--green)}
+.list-sep.ausentes{color:var(--txt2)}
+
+/* ── NOT-AVAIL CARD (blocked) ── */
+.pcard.not-avail{background:var(--bg);border-color:rgba(48,54,61,.4);cursor:default}
+.pcard.not-avail:hover{transform:none;border-color:rgba(48,54,61,.4)}
+.pcard.not-avail .av{filter:grayscale(1) brightness(.45)}
+.pcard.not-avail .pi{opacity:.3}
+.pcard.not-avail .prat-pill{opacity:.25}
+/* avail-dot and pactions stay full opacity (siblings of .pi, not children) */
+
+/* ── AVAILABILITY PROGRESS BAR ── */
+.avail-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0 10px}
+.avail-bar-fill{height:100%;border-radius:3px;transition:width .45s ease}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 768px) {
+  /* Prevent horizontal scroll at root level */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  /* ── HEADER: una sola fila ── */
+  header { padding: 8px 12px; gap: 8px; flex-wrap: nowrap; }
+  #ftabs       { display: none !important; }
+  #btn-export  { display: none; }
+  #btn-import  { display: none; }
+  #sync-status { display: none; }
+  #tn-display  { font-size: 1rem; }
+  .mtab        { font-size: .75rem; padding: 5px 10px; }
+
+  /* ── LAYOUT PLANTEL: columna única, campo primero ── */
+  .layout {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 10px;
+    min-height: unset;
+    overflow-x: hidden;
+  }
+  .layout > .sidebar { order: 2; }
+  .layout > .pc      { order: 1; }
+  .layout > .rpanel  { display: none; }
+
+  /* ── FORMATION TABS bajo el campo (plantel) ── */
+  #ftabs-mobile { justify-content: center; }
+
+  /* Ambos campos: ancho completo */
+  #pitch, #spitch { max-width: 100%; max-height: 44vh; }
+
+  /* Bench */
+  .bench { max-width: 100%; }
+
+  /* Slots */
+  .slot       { width: 54px; height: 54px; }
+  .slot-inner { width: 48px; height: 48px; }
+  .slot-rm    { width: 22px; height: 22px; display: flex !important; top: -5px; right: -5px; font-size: .6rem; }
+  .slot-ini   { font-size: .6rem; }
+  .slot-nm    { font-size: .45rem; }
+
+  /* ── LISTA DE JUGADORES: vertical ── */
+  .plist {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 40vh;
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-sep { display: flex; }
+  .pcard { min-width: 0; transform: none !important; cursor: default; padding: 6px 9px; }
+  .pcard:hover { transform: none; }
+  .pfull     { display: none; }
+  .prat-pill { display: none; }
+  .pactions  { display: flex !important; }
+
+  /* Bench chips */
+  .bench-players { gap: 5px; }
+  .bench-chip    { padding: 3px 8px; font-size: .7rem; }
+
+  /* ── LAYOUT ESTRATEGIAS ── */
+  .slayout {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 8px;
+    min-height: unset;
+    overflow-x: hidden;
+  }
+  .slayout > .sidebar { order: 2; overflow: hidden; }
+  .slayout > .pc      { order: 1; width: 100%; overflow-x: hidden; }
+  .slayout > .rpanel  { display: none; }
+
+  /* Steps bar: scroll horizontal si hay muchos pasos */
+  .steps-bar {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+  }
+
+  /* Controles de reproducción: compactos */
+  .play-controls {
+    max-width: 100%;
+    gap: 5px;
+  }
+  .play-controls .btn { padding: 6px 10px; font-size: .75rem; }
+  .chk { font-size: .7rem; }
+
+  /* Lista de jugadas: vertical con scroll */
+  .slayout > .sidebar .plist {
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 28vh;
+  }
+  .playcard { min-width: 0; }
+
+  /* Safe area iPhone */
+  body { padding-bottom: env(safe-area-inset-bottom, 12px); }
+}
+
+/* ── iPhone SE / pantallas muy chicas ── */
+@media (max-width: 380px) {
+  .pitch { max-width: min(100%, 58vw); max-height: 36vh; }
+  .slot { width: 48px; height: 48px; }
+  .slot-inner { width: 42px; height: 42px; }
+  .slot-ini { font-size: .55rem; }
+}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="lo-icon lo-spin">⚽</div>
+  <div class="lo-title">Conectando con el equipo...</div>
+  <div class="lo-msg" id="lo-msg"></div>
+</div>
+
+<header>
+  <span>⚽</span>
+  <span id="tn-display" onclick="startEditName()">Koba</span>
+  <input id="tn-input" type="text" onblur="saveName()" onkeydown="if(event.key==='Enter')saveName()">
+  <div class="mtabs" id="mtabs"></div>
+  <div class="ftabs" id="ftabs"></div>
+  <div class="spacer"></div>
+  <span id="sync-status">⏳</span>
+  <button class="btn btn-s" id="btn-export" onclick="exportData()" title="Descargar backup">⬇️ Exportar</button>
+  <button class="btn btn-s" id="btn-import" onclick="document.getElementById('import-file').click()" title="Restaurar backup">⬆️ Importar</button>
+  <input type="file" id="import-file" accept="application/json" style="display:none" onchange="importData(event)">
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sh">
+      <span class="stitle">Plantilla <span id="pcount" style="color:var(--green)">0</span></span>
+      <button class="btn-add" onclick="openAdd()">+ Jugador</button>
+    </div>
+    <div class="plist" id="plist"></div>
+  </aside>
+
+  <div class="pc">
+    <div class="ftabs" id="ftabs-mobile" style="display:none"></div>
+    <div class="pitch" id="pitch">
+      <div class="pstripes"></div>
+      <div class="pmarks">
+        <svg viewBox="0 0 100 154" preserveAspectRatio="none">
+          <rect x="2" y="2" width="96" height="150" fill="none" stroke="rgba(255,255,255,.25)" stroke-width=".5"/>
+          <line x1="2" y1="77" x2="98" y2="77" stroke="rgba(255,255,255,.25)" stroke-width=".5"/>
+          <circle cx="50" cy="77" r="12" fill="none" stroke="rgba(255,255,255,.22)" stroke-width=".5"/>
+          <circle cx="50" cy="77" r=".9" fill="rgba(255,255,255,.4)"/>
+          <rect x="26" y="2" width="48" height="20" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <rect x="38" y="2" width="24" height="8" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <circle cx="50" cy="16" r=".8" fill="rgba(255,255,255,.35)"/>
+          <rect x="26" y="132" width="48" height="20" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <rect x="38" y="144" width="24" height="8" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <circle cx="50" cy="138" r=".8" fill="rgba(255,255,255,.35)"/>
+          <rect x="40" y="0" width="20" height="2.5" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>
+          <rect x="40" y="151.5" width="20" height="2.5" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bench">
+      <div class="bench-title">🪑 Suplentes</div>
+      <div class="bench-players" id="bench-players"></div>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="pnlcard">
+      <div class="pnltitle">📊 Plantel</div>
+      <div id="stats-body"></div>
+    </div>
+    <div class="pnlcard">
+      <div class="pnltitle">📋 Alineación</div>
+      <div id="lineup-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGY VIEW -->
+<div class="slayout" id="slayout" style="display:none">
+  <aside class="sidebar">
+    <div class="sh">
+      <span class="stitle">Jugadas (<span id="playcount">0</span>)</span>
+      <button class="btn-add" onclick="newPlay()">+ Jugada</button>
+    </div>
+    <div class="plist" id="playslist"></div>
+  </aside>
+
+  <div class="pc">
+    <div class="steps-bar" id="steps-bar"></div>
+    <div class="pitch" id="spitch">
+      <div class="pstripes"></div>
+      <div class="pmarks">
+        <svg viewBox="0 0 100 154" preserveAspectRatio="none">
+          <rect x="2" y="2" width="96" height="150" fill="none" stroke="rgba(255,255,255,.25)" stroke-width=".5"/>
+          <line x1="2" y1="77" x2="98" y2="77" stroke="rgba(255,255,255,.25)" stroke-width=".5"/>
+          <circle cx="50" cy="77" r="12" fill="none" stroke="rgba(255,255,255,.22)" stroke-width=".5"/>
+          <circle cx="50" cy="77" r=".9" fill="rgba(255,255,255,.4)"/>
+          <rect x="26" y="2" width="48" height="20" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <rect x="38" y="2" width="24" height="8" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <circle cx="50" cy="16" r=".8" fill="rgba(255,255,255,.35)"/>
+          <rect x="26" y="132" width="48" height="20" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <rect x="38" y="144" width="24" height="8" fill="none" stroke="rgba(255,255,255,.2)" stroke-width=".5"/>
+          <circle cx="50" cy="138" r=".8" fill="rgba(255,255,255,.35)"/>
+          <rect x="40" y="0" width="20" height="2.5" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>
+          <rect x="40" y="151.5" width="20" height="2.5" fill="rgba(255,255,255,.1)" stroke="rgba(255,255,255,.35)" stroke-width=".5"/>
+        </svg>
+      </div>
+      <svg class="tk-arrows" id="tk-arrows" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="play-controls">
+      <button class="btn btn-p" id="btn-playpause" onclick="togglePlay()">▶ Reproducir</button>
+      <button class="btn btn-s" onclick="addStep()">+ Paso</button>
+      <button class="btn btn-d" onclick="deleteCurrentStep()">🗑 Paso</button>
+      <label class="chk"><input type="checkbox" id="chk-arrows" checked onchange="renderStrategyPitch()"> Flechas</label>
+      <button class="btn btn-s" id="btn-gif" onclick="downloadGif()" title="Descargar animación como GIF">📥 GIF</button>
+    </div>
+  </div>
+
+  <div class="rpanel">
+    <div class="pnlcard">
+      <div class="pnltitle">🎯 Jugada</div>
+      <div id="play-meta-body"></div>
+    </div>
+    <div class="pnlcard">
+      <div class="pnltitle">ℹ️ Cómo armar una jugada</div>
+      <div style="font-size:.72rem;color:var(--txt2);line-height:1.6">
+        1. Elegí o creá una jugada.<br>
+        2. Arrastrá jugadoras a su nueva posición.<br>
+        3. Tocá <b>+ Paso</b> para guardar el movimiento.<br>
+        4. Tocá <b>▶ Reproducir</b> para ver la animación.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER MODAL -->
+<div class="overlay" id="pmodal">
+  <div class="modal">
+    <div class="mtitle" id="mtitle">Nuevo Jugador</div>
+    <div class="frow">
+      <div class="fg"><label class="flbl">Nombre completo</label><input class="fi" id="p-name" placeholder="Nombre completo" type="text"></div>
+      <div class="fg"><label class="flbl">Apodo</label><input class="fi" id="p-nick" placeholder="Apodo" type="text"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="flbl">Número</label><input class="fi" id="p-num" placeholder="#" type="number" min="1" max="999"></div>
+      <div class="fg">
+        <label class="flbl">Posición</label>
+        <select class="fi" id="p-pos">
+          <option value="POR">🧤 Golero</option>
+          <option value="DEF">🛡 Defensa</option>
+          <option value="MED">⚙️ Mediocampista</option>
+          <option value="DEL">⚡ Delantero</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flbl">Valoración: <span id="rlbl">75</span></label>
+      <div class="ract">
+        <input type="range" id="p-rat" min="50" max="99" value="75" oninput="document.getElementById('rlbl').textContent=this.value;document.getElementById('rdsp').textContent=this.value">
+        <span class="rdisplay" id="rdsp">75</span>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flbl">Insignias</label>
+      <div class="badge-opts">
+        <button class="bopt" data-b="captain"   onclick="togBadge(this)">🎗️ Capitán</button>
+        <button class="bopt" data-b="mvp"       onclick="togBadge(this)">⭐ MVP</button>
+        <button class="bopt" data-b="topscorer" onclick="togBadge(this)">🎯 Goleador</button>
+        <button class="bopt" data-b="veteran"   onclick="togBadge(this)">🏅 Veterano</button>
+      </div>
+    </div>
+    <div class="mactions">
+      <button class="btn btn-s" onclick="closeAdd()">Cancelar</button>
+      <button class="btn btn-d" id="bdel" style="display:none" onclick="delPlayer()">Eliminar</button>
+      <button class="btn btn-p" onclick="savePlayer()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- POSITION SELECT MODAL -->
+<div class="overlay" id="smodal">
+  <div class="modal">
+    <div class="mtitle">Seleccionar Jugador</div>
+    <div style="font-size:.75rem;color:var(--txt2);margin-bottom:10px" id="slbl">Elige para esta posición</div>
+    <div class="psgrid" id="psgrid"></div>
+    <div class="mactions"><button class="btn btn-s" onclick="closeSel()">Cancelar</button></div>
+  </div>
+</div>
+
+<script>
+// ─── FIREBASE CONFIG ─────────────────────────────────────────────────
+// Completá con los datos de tu proyecto: console.firebase.google.com
+// → Configuración del proyecto → General → "Tus apps" → SDK
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyA8Ihp9OGrH6ZmHDmfHvf_XM6ddlVPLj98",
+  authDomain:        "koba-fc.firebaseapp.com",
+  databaseURL:       "https://koba-fc-default-rtdb.firebaseio.com",
+  projectId:         "koba-fc",
+  storageBucket:     "koba-fc.firebasestorage.app",
+  messagingSenderId: "5519356971",
+  appId:             "1:5519356971:web:70af6f32689a92cd90666e",
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db     = firebase.database();
+const DB_REF = db.ref('futbol7');
+
+const SESSION_ID = Math.random().toString(36).slice(2, 9);
+let saveTimer   = null;
+let initialized = false;
+
+// ─── STATE ───────────────────────────────────────────────────────────
+let S = {
+  teamName: 'Koba',
+  formation: '2-3-1',
+  players: [],
+  lineup: {},
+  editId: null,
+  selSlot: null,
+  view: 'plantel',
+  plays: [],
+  currentPlayId: null,
+  currentStep: 0,
+  playing: false,
+};
+let selBadges = [];
+let dragId = null;
+
+// ─── FORMATIONS ──────────────────────────────────────────────────────
+const FMS = {
+  '2-3-1': { positions: [
+    {id:'gk', lbl:'POR', role:'gk',  x:50, y:88},
+    {id:'d1', lbl:'DEF', role:'def', x:30, y:70},
+    {id:'d2', lbl:'DEF', role:'def', x:70, y:70},
+    {id:'m1', lbl:'MED', role:'mid', x:20, y:49},
+    {id:'m2', lbl:'MED', role:'mid', x:50, y:49},
+    {id:'m3', lbl:'MED', role:'mid', x:80, y:49},
+    {id:'f1', lbl:'DEL', role:'fwd', x:50, y:22},
+  ]},
+  '3-2-1': { positions: [
+    {id:'gk', lbl:'POR', role:'gk',  x:50, y:88},
+    {id:'d1', lbl:'DEF', role:'def', x:20, y:70},
+    {id:'d2', lbl:'DEF', role:'def', x:50, y:70},
+    {id:'d3', lbl:'DEF', role:'def', x:80, y:70},
+    {id:'m1', lbl:'MED', role:'mid', x:33, y:49},
+    {id:'m2', lbl:'MED', role:'mid', x:67, y:49},
+    {id:'f1', lbl:'DEL', role:'fwd', x:50, y:22},
+  ]},
+  '3-1-2': { positions: [
+    {id:'gk', lbl:'POR', role:'gk',  x:50, y:88},
+    {id:'d1', lbl:'DEF', role:'def', x:20, y:70},
+    {id:'d2', lbl:'DEF', role:'def', x:50, y:70},
+    {id:'d3', lbl:'DEF', role:'def', x:80, y:70},
+    {id:'m1', lbl:'MED', role:'mid', x:50, y:50},
+    {id:'f1', lbl:'DEL', role:'fwd', x:30, y:24},
+    {id:'f2', lbl:'DEL', role:'fwd', x:70, y:24},
+  ]},
+};
+
+const RC = { gk:{bg:'#f59e0b',txt:'#000'}, def:{bg:'#3b82f6',txt:'#fff'}, mid:{bg:'#10b981',txt:'#fff'}, fwd:{bg:'#ef4444',txt:'#fff'} };
+const PM = {POR:'gk', DEF:'def', MED:'mid', DEL:'fwd'};
+const RM = {gk:'POR', def:'DEF', mid:'MED', fwd:'DEL'};
+const AVC = [
+  ['#6366f1','#fff'],['#8b5cf6','#fff'],['#ec4899','#fff'],['#f59e0b','#000'],
+  ['#10b981','#fff'],['#3b82f6','#fff'],['#ef4444','#fff'],['#14b8a6','#fff'],
+  ['#f97316','#fff'],['#84cc16','#000'],['#06b6d4','#fff'],['#a855f7','#fff'],
+];
+
+// ─── HELPERS ─────────────────────────────────────────────────────────
+const ini     = n  => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const avc     = id => AVC[(id-1) % AVC.length];
+const rc      = r  => r>=85?'#10b981':r>=75?'#3b82f6':r>=65?'#f59e0b':'#ef4444';
+const byId    = id => S.players.find(p=>p.id===id);
+const slotP   = sid => { const pid=S.lineup[sid]; return pid?byId(pid):null; };
+const inLU    = id => Object.values(S.lineup).includes(id);
+const fpos    = () => FMS[S.formation].positions;
+const nextId  = () => S.players.length ? Math.max(...S.players.map(p=>p.id))+1 : 1;
+const isAvail = p  => p.available !== false;
+// Display helpers: use nickname when available
+const dispName = p => p.nickname || p.name.split(' ')[0];
+const dispIni  = p => ini(p.nickname || p.name);
+// Show full name subtitle when nickname differs from first name
+const showFull = p => p.nickname && p.name.split(' ')[0].toLowerCase() !== p.nickname.toLowerCase();
+
+// ─── PERSIST ─────────────────────────────────────────────────────────
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const { editId, selSlot, playing, ...persistable } = S;
+    DB_REF.set({ ...persistable, _session: SESSION_ID })
+      .catch(err => console.warn('Firebase write error:', err));
+  }, 600);
+}
+
+// ─── DEFAULT DATA ────────────────────────────────────────────────────
+function defaultPlayers() {
+  return [
+    {id:1,  name:'Héctor Marcelo Barnada',             nickname:'Chito',      number:18,  position:'MED', rating:75, badges:[], available:true},
+    {id:2,  name:'Emiliano Javier Rodríguez Naguil',   nickname:'Emi',        number:5,   position:'DEF', rating:75, badges:[], available:true},
+    {id:3,  name:'Gastón Donadío Aprile',               nickname:'Tonga',      number:4,   position:'DEF', rating:75, badges:[], available:true},
+    {id:4,  name:'Federico Agustín Rodríguez Giuliani', nickname:'Agu',        number:42,  position:'DEL', rating:75, badges:[], available:true},
+    {id:5,  name:'Eri Pedro Gallino Formaggia',         nickname:'Eri',        number:3,   position:'DEF', rating:75, badges:[], available:true},
+    {id:6,  name:'Juan Martín Saavedra Vazquez',        nickname:'Juanma',     number:11,  position:'MED', rating:75, badges:[], available:true},
+    {id:7,  name:'Hernán Rumbo',                        nickname:'Hernán',     number:10,  position:'MED', rating:75, badges:[], available:true},
+    {id:8,  name:'Nicolás Nieto Diaz',                  nickname:'Nico Nieto', number:111, position:'POR', rating:75, badges:[], available:true},
+    {id:9,  name:'German Roytman',                      nickname:'Ger',        number:105, position:'DEL', rating:75, badges:[], available:true},
+    {id:10, name:'Nahuel Lofiego Armand Ugón',          nickname:'Nahue',      number:101, position:'MED', rating:75, badges:[], available:true},
+    {id:11, name:'Nicolas Maximiliano Ortiz',           nickname:'Nico O',     number:103, position:'MED', rating:75, badges:[], available:true},
+    {id:12, name:'Nicolas Sogliano',                    nickname:'Nico S',     number:104, position:'DEF', rating:75, badges:[], available:true},
+    {id:13, name:'Mariano Rodriguez',                   nickname:'Mariano',    number:17,  position:'POR', rating:75, badges:[], available:true},
+    {id:14, name:'Gonzalo Alvarez',                     nickname:'Gonza',      number:7,   position:'MED', rating:75, badges:[], available:true},
+    {id:15, name:'Diego Areosa Denevi',                 nickname:'Morocho',    number:1,   position:'POR', rating:75, badges:[], available:true},
+  ];
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+function render() {
+  renderTabs(); renderPList(); renderPitch(); renderLineup(); renderStats();
+}
+
+function renderTabs() {
+  const html = Object.keys(FMS).map(k=>
+    `<button class="ftab${k===S.formation?' active':''}" onclick="changeFm('${k}')">${k}</button>`
+  ).join('');
+  document.getElementById('ftabs').innerHTML = html;
+  const mob = document.getElementById('ftabs-mobile');
+  if (mob) mob.innerHTML = html;
+}
+
+function renderPList() {
+  const attending = S.players.filter(isAvail);
+  const absent    = S.players.filter(p => !isAvail(p));
+  document.getElementById('pcount').textContent = `${attending.length}/${S.players.length}`;
+  const el = document.getElementById('plist');
+  if (!S.players.length) {
+    el.innerHTML = '<div style="color:var(--txt2);font-size:.8rem;text-align:center;padding:20px">¡Agrega jugadores!</div>';
+    return;
+  }
+
+  const cardHtml = p => {
+    const lu = inLU(p.id), [bg,tx] = avc(p.id), rclr = RC[PM[p.position]||'mid'];
+    const bx = p.badges || [], av = isAvail(p), nick = dispName(p);
+    const ratHtml = av
+      ? `<span class="prat-pill" style="font-size:.74rem;font-weight:800;padding:2px 8px;border-radius:12px;background:${rc(p.rating)}1a;color:${rc(p.rating)};flex-shrink:0">${p.rating}</span>`
+      : `<span class="prat-pill" style="font-size:.74rem;font-weight:800;padding:2px 8px;border-radius:12px;background:var(--border);color:var(--txt2);flex-shrink:0">${p.rating}</span>`;
+    return `<div class="pcard${lu?' in-lineup':''}${!av?' not-avail':''}" id="pc${p.id}" draggable="${av}"
+        ondragstart="${av?`dstart(event,${p.id})`:'return false'}" ondragend="dend(event,${p.id})">
+      <div class="av" style="background:${bg};color:${tx}">${dispIni(p)}</div>
+      <div class="pi">
+        <div class="pname">${bx.includes('captain')?'🎗️ ':''}${bx.includes('mvp')?'⭐ ':''}${nick}</div>
+        <div class="pmeta">
+          <span class="ptag" style="background:${rclr.bg}22;color:${rclr.bg}">${p.position}</span>
+          <span class="pnum">#${p.number}</span>
+          ${bx.includes('topscorer')?'<span title="Goleador">🎯</span>':''}
+          ${bx.includes('veteran')?'<span title="Veterano">🏅</span>':''}
+        </div>
+        ${showFull(p)?`<div class="pfull">${p.name}</div>`:''}
+      </div>
+      ${ratHtml}
+      <button class="avail-dot${av?'':' off'}" onclick="toggleAvail(event,${p.id})" title="${av?'Asiste — clic para marcar ausente':'Ausente — clic para marcar que asiste'}"></button>
+      <div class="pactions"><button class="bico" onclick="openEdit(${p.id})">✏️</button></div>
+    </div>`;
+  };
+
+  let html = '';
+  if (attending.length) {
+    html += `<div class="list-sep asisten">Asisten · ${attending.length}</div>`;
+    html += attending.map(cardHtml).join('');
+  }
+  if (absent.length) {
+    html += `<div class="list-sep ausentes">No asisten · ${absent.length}</div>`;
+    html += absent.map(cardHtml).join('');
+  }
+  el.innerHTML = html;
+}
+
+function renderStats() {
+  const el = document.getElementById('stats-body');
+  if (!el) return;
+  const total = S.players.length;
+  if (!total) { el.innerHTML = '<div style="color:var(--txt2);font-size:.78rem">Sin jugadoras aún</div>'; return; }
+
+  const availCount = S.players.filter(isAvail).length;
+  const inLUp = Object.values(S.lineup).filter(Boolean).length;
+  const slotsN = fpos().length;
+  const avgRat = Math.round(S.players.reduce((s,p) => s + p.rating, 0) / total);
+
+  const byPos = {}, avPos = {};
+  S.players.forEach(p => {
+    byPos[p.position] = (byPos[p.position]||0) + 1;
+    if (isAvail(p)) avPos[p.position] = (avPos[p.position]||0) + 1;
+  });
+
+  const availColor = availCount >= slotsN ? 'var(--green)' : availCount >= 5 ? 'var(--orange)' : 'var(--red)';
+  const badges = ['POR','DEF','MED','DEL'].filter(k => byPos[k]).map(k => {
+    const clr = RC[PM[k]]?.bg || 'var(--txt2)';
+    const av = avPos[k] || 0;
+    return `<span style="font-size:.62rem;padding:2px 7px;border-radius:10px;background:${clr}22;color:${clr};font-weight:700">${k}&nbsp;${av}/${byPos[k]}</span>`;
+  }).join('');
+
+  const pct = total ? Math.round((availCount / total) * 100) : 0;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+      <span class="sl">Disponibles</span>
+      <span class="sv" style="color:${availColor}">${availCount} / ${total}</span>
+    </div>
+    <div class="avail-bar"><div class="avail-bar-fill" style="width:${pct}%;background:${availColor}"></div></div>
+    <div class="st"><span class="sl">Alineadas</span><span class="sv">${inLUp} / ${slotsN}</span></div>
+    <div class="st"><span class="sl">Rating promedio</span><span class="sv" style="color:${rc(avgRat)}">${avgRat}</span></div>
+    ${badges ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin:8px 0">${badges}</div>` : ''}
+    <button class="btn btn-p" style="width:100%;margin-top:4px;font-size:.78rem" onclick="autoFill()">⚡ Auto-completar alineación</button>
+  `;
+}
+
+function renderPitch() {
+  const pitch = document.getElementById('pitch');
+  pitch.querySelectorAll('.slot').forEach(e => e.remove());
+  const positions = fpos();
+  pitch.classList.toggle('full', positions.every(p => S.lineup[p.id]));
+
+  positions.forEach(pos => {
+    const pl = slotP(pos.id);
+    const el = document.createElement('div');
+    el.className = 'slot ' + (pl ? 'filled' : 'empty');
+    el.id = 'sl-' + pos.id;
+    el.style.left = pos.x + '%';
+    el.style.top  = pos.y + '%';
+    const rc_ = RC[pos.role];
+
+    if (pl) {
+      const [bg] = avc(pl.id);
+      const nick = dispName(pl);
+      const [nickTop, nickBot] = nick.split(' ');
+      const topSize = nickTop.length > 5 ? '.58rem' : nickTop.length > 3 ? '.65rem' : '.72rem';
+      el.innerHTML = `<div class="slot-inner" style="border-color:${rc_.bg};background:${bg}33">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px">
+          <div style="font-size:${topSize};font-weight:700;color:#fff;line-height:1">${nickTop}</div>
+          ${nickBot ? `<div style="font-size:.48rem;color:rgba(255,255,255,.85);line-height:1">${nickBot}</div>` : ''}
+        </div>
+        <button class="slot-rm" onclick="rmSlot('${pos.id}')">✕</button>
+        <div class="slot-rat" style="color:${rc(pl.rating)}">${pl.rating}</div>
+      </div>`;
+      // Click filled slot → reassign
+      el.addEventListener('click', ev => {
+        if (ev.target.closest('.slot-rm')) return;
+        openSel(pos.id, pos.lbl);
+      });
+    } else {
+      el.innerHTML = `<div class="slot-inner" style="border-color:${rc_.bg}55">
+        <div class="slot-lbl" style="color:${rc_.bg}">${pos.lbl}</div>
+      </div>`;
+      el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+      el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+      el.addEventListener('drop', e => drop(e, pos.id));
+      el.addEventListener('click', () => openSel(pos.id, pos.lbl));
+    }
+    pitch.appendChild(el);
+  });
+
+  const inLU_ids = new Set(Object.values(S.lineup).filter(Boolean));
+  const bench = S.players.filter(p => !inLU_ids.has(p.id) && isAvail(p));
+  document.getElementById('bench-players').innerHTML = bench.map(p => {
+    const [bg,tx] = avc(p.id);
+    const rclr = RC[PM[p.position]||'mid'];
+    const av = isAvail(p);
+    return `<div class="bench-chip${!av?' unavail':''}">
+      <div class="bav" style="background:${bg};color:${tx}">${dispIni(p)}</div>
+      ${dispName(p)}
+      <span class="ptag" style="background:${rclr.bg}22;color:${rclr.bg};font-size:.55rem">${p.position}</span>
+      <span style="color:${rc(p.rating)};font-size:.7rem;font-weight:700">${p.rating}</span>
+      ${!av ? '<span style="font-size:.65rem" title="No disponible">🚫</span>' : ''}
+    </div>`;
+  }).join('') || '<span style="font-size:.75rem;color:var(--txt2)">Todas en cancha 🎉</span>';
+}
+
+function renderLineup() {
+  document.getElementById('lineup-list').innerHTML = fpos().map(pos => {
+    const pl = slotP(pos.id), rc_ = RC[pos.role];
+    return `<div class="li">
+      <span class="li-pos" style="background:${rc_.bg}22;color:${rc_.bg}">${pos.lbl}</span>
+      ${pl
+        ? `<span class="li-num">${pl.number}</span>
+           <span class="li-name">${dispName(pl)}</span>
+           <span class="li-rat" style="color:${rc(pl.rating)}">${pl.rating}</span>`
+        : `<span style="color:var(--txt2);font-size:.7rem;font-style:italic">Vacío</span>`
+      }
+    </div>`;
+  }).join('');
+}
+
+// ─── AVAILABILITY ────────────────────────────────────────────────────
+function toggleAvail(ev, id) {
+  ev.stopPropagation();
+  const p = byId(id); if (!p) return;
+  p.available = p.available === false ? true : false;
+  if (!p.available && inLU(id)) {
+    Object.keys(S.lineup).forEach(k => { if (S.lineup[k] === id) delete S.lineup[k]; });
+    toast(`${dispName(p)} sacado de la alineación (ausente)`);
+  } else {
+    toast(`${dispName(p)} ${p.available ? '✅ disponible' : '🚫 ausente'}`);
+  }
+  render(); save();
+}
+
+// ─── AUTO-FILL ───────────────────────────────────────────────────────
+function autoFill() {
+  const roleToPos = { gk:'POR', def:'DEF', mid:'MED', fwd:'DEL' };
+  const pool = S.players.filter(p => isAvail(p) && !inLU(p.id));
+  if (!pool.length) { toast('No hay jugadores disponibles ⚠️'); return; }
+  let filled = 0;
+  for (const pos of fpos()) {
+    if (S.lineup[pos.id]) continue;
+    const want = roleToPos[pos.role];
+    let idx = pool.findIndex(p => p.position === want);
+    if (idx === -1) idx = 0;
+    if (!pool[idx]) continue;
+    S.lineup[pos.id] = pool[idx].id;
+    pool.splice(idx, 1);
+    filled++;
+  }
+  if (filled) toast(`${filled} jugadora${filled>1?'s':''} asignada${filled>1?'s':''} ⚡`);
+  else toast('Alineación ya completa ✅');
+  render(); save();
+}
+
+// ─── DRAG & DROP ─────────────────────────────────────────────────────
+function dstart(e, id) {
+  dragId = id;
+  e.dataTransfer.setData('text/plain', id);
+  setTimeout(() => { document.getElementById('pc'+id)?.classList.add('dragging'); }, 0);
+}
+function dend(e, id) {
+  document.getElementById('pc'+id)?.classList.remove('dragging');
+}
+function drop(e, slotId) {
+  e.preventDefault();
+  document.getElementById('sl-'+slotId)?.classList.remove('drag-over');
+  const pid = parseInt(e.dataTransfer.getData('text/plain') || dragId);
+  if (!pid) return;
+  Object.keys(S.lineup).forEach(k => { if (S.lineup[k] === pid) delete S.lineup[k]; });
+  S.lineup[slotId] = pid;
+  const p = byId(pid); toast(`${p ? dispName(p) : '?'} asignado ✅`);
+  render(); save();
+}
+
+// ─── SLOT ACTIONS ────────────────────────────────────────────────────
+function rmSlot(sid) { delete S.lineup[sid]; render(); save(); }
+
+function openSel(sid, lbl) {
+  S.selSlot = sid;
+  document.getElementById('slbl').textContent = 'Posición: ' + lbl;
+  const currentId = S.lineup[sid];
+  // Available first, then unavailable; both exclude players already in other slots
+  const candidates = S.players
+    .filter(p => p.id === currentId || !inLU(p.id))
+    .sort((a, b) => (isAvail(a) ? 0 : 1) - (isAvail(b) ? 0 : 1));
+  document.getElementById('psgrid').innerHTML = candidates.length
+    ? candidates.map(p => {
+        const [bg,tx] = avc(p.id);
+        const av = isAvail(p);
+        const isCurrent = p.id === currentId;
+        return `<div class="pscard${!av?' ps-unavail':''}" onclick="assign(${p.id})">
+          <div class="psa" style="background:${bg};color:${tx}">${dispIni(p)}</div>
+          <div class="psn">${dispName(p)}${isCurrent?' <span style="color:var(--green)">✓</span>':''}</div>
+          <div class="psp">${p.position} · #${p.number}${!av?' · 🚫':''}</div>
+        </div>`;
+      }).join('')
+    : `<div style="grid-column:1/-1;text-align:center;font-size:.8rem;color:var(--txt2);padding:16px">No hay jugadores disponibles</div>`;
+  document.getElementById('smodal').classList.add('open');
+}
+function assign(pid) {
+  if (!S.selSlot) return;
+  Object.keys(S.lineup).forEach(k => { if (S.lineup[k] === pid) delete S.lineup[k]; });
+  S.lineup[S.selSlot] = pid;
+  closeSel();
+  const ap = byId(pid); toast(`${ap ? dispName(ap) : '?'} asignado ✅`);
+  render(); save();
+}
+function closeSel() { document.getElementById('smodal').classList.remove('open'); S.selSlot = null; }
+
+// ─── FORMATION ───────────────────────────────────────────────────────
+function changeFm(fm) {
+  if (S.formation === fm) return;
+  const had = Object.keys(S.lineup).length > 0;
+  if (had && !confirm('¿Cambiar formación? Se va a limpiar la alineación actual.')) return;
+  S.formation = fm;
+  S.lineup = {};
+  if (had) toast('Formación cambiada — alineación reiniciada 🔄');
+  render(); save();
+}
+
+// ─── PLAYER CRUD ─────────────────────────────────────────────────────
+function openAdd() {
+  S.editId = null; selBadges = [];
+  document.getElementById('mtitle').textContent = 'Nuevo Jugador';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-nick').value = '';
+  document.getElementById('p-num').value = '';
+  document.getElementById('p-pos').value = 'MED';
+  document.getElementById('p-rat').value = 75;
+  document.getElementById('rlbl').textContent = 75;
+  document.getElementById('rdsp').textContent = 75;
+  document.getElementById('bdel').style.display = 'none';
+  document.querySelectorAll('.bopt').forEach(b => b.classList.remove('sel'));
+  document.getElementById('pmodal').classList.add('open');
+  setTimeout(() => document.getElementById('p-name').focus(), 50);
+}
+function openEdit(id) {
+  const p = byId(id); if (!p) return;
+  S.editId = id; selBadges = [...(p.badges||[])];
+  document.getElementById('mtitle').textContent = 'Editar Jugador';
+  document.getElementById('p-name').value = p.name;
+  document.getElementById('p-nick').value = p.nickname || '';
+  document.getElementById('p-num').value = p.number;
+  document.getElementById('p-pos').value = p.position;
+  document.getElementById('p-rat').value = p.rating;
+  document.getElementById('rlbl').textContent = p.rating;
+  document.getElementById('rdsp').textContent = p.rating;
+  document.getElementById('bdel').style.display = 'block';
+  document.querySelectorAll('.bopt').forEach(b => b.classList.toggle('sel', selBadges.includes(b.dataset.b)));
+  document.getElementById('pmodal').classList.add('open');
+}
+function closeAdd() { document.getElementById('pmodal').classList.remove('open'); }
+function togBadge(btn) {
+  const b = btn.dataset.b;
+  if (selBadges.includes(b)) { selBadges = selBadges.filter(x => x !== b); btn.classList.remove('sel'); }
+  else { selBadges.push(b); btn.classList.add('sel'); }
+}
+function savePlayer() {
+  const name = document.getElementById('p-name').value.trim();
+  if (!name) { document.getElementById('p-name').focus(); return; }
+  const num = parseInt(document.getElementById('p-num').value) || 0;
+  // Duplicate jersey number check
+  if (num > 0) {
+    const dup = S.players.find(p => p.number === num && p.id !== S.editId);
+    if (dup) {
+      toast(`El número ${num} ya lo usa ${dup.name.split(' ')[0]} ⚠️`);
+      document.getElementById('p-num').focus();
+      return;
+    }
+  }
+  const data = {
+    name, number: num,
+    nickname: document.getElementById('p-nick').value.trim() || '',
+    position: document.getElementById('p-pos').value,
+    rating: parseInt(document.getElementById('p-rat').value),
+    badges: [...selBadges],
+    available: true,
+  };
+  if (S.editId) {
+    const existing = byId(S.editId);
+    data.available = existing.available;
+    Object.assign(existing, data);
+    toast('Jugador actualizado ✅');
+  } else {
+    S.players.push({ id: nextId(), ...data });
+    toast('Jugador agregado 🎉');
+  }
+  closeAdd(); render(); save();
+}
+function delPlayer() {
+  if (!S.editId) return;
+  const p = byId(S.editId);
+  if (!confirm(`¿Eliminar a ${p?.name}?`)) return;
+  S.players = S.players.filter(x => x.id !== S.editId);
+  Object.keys(S.lineup).forEach(k => { if (S.lineup[k] === S.editId) delete S.lineup[k]; });
+  closeAdd(); toast('Jugador eliminado'); render(); save();
+}
+
+// ─── STRATEGY / TACTICS ──────────────────────────────────────────────
+function currentPlay() { return S.plays.find(p => p.id === S.currentPlayId) || null; }
+function nextPlayId()   { return S.plays.length ? Math.max(...S.plays.map(p=>p.id))+1 : 1; }
+const clampv = v => Math.max(4, Math.min(96, v));
+
+function seedLibraryPlays() {
+  if (S.libSeeded) return;
+  S.plays = S.plays.filter(p => p.name !== 'Ejemplo: salida al ataque');
+  const positions = FMS['2-3-1'].positions;
+  const usedIds = new Set(), bySlot = {};
+  positions.forEach(pos => {
+    const want = RM[pos.role];
+    let pl = S.players.find(p => p.position === want && !usedIds.has(p.id));
+    if (!pl) pl = S.players.find(p => !usedIds.has(p.id));
+    if (pl) { usedIds.add(pl.id); bySlot[pos.id] = pl.id; }
+  });
+  if (Object.keys(bySlot).length < 6) { S.libSeeded = true; return; }
+
+  const base = {}; positions.forEach(p => base[p.id] = {x:p.x, y:p.y});
+  function stepFrom(deltas) {
+    const pos = {};
+    positions.forEach(p => {
+      const pid = bySlot[p.id]; if (!pid) return;
+      const d = deltas[p.id] || {x:p.x, y:p.y};
+      pos[pid] = { x: clampv(d.x), y: clampv(d.y) };
+    });
+    return { positions: pos };
+  }
+
+  const atk = { id:nextPlayId(), libId:'atk-231', formation:'2-3-1',
+    name:'⚔️ Ataque: pared y tercer hombre por banda',
+    steps:[
+      stepFrom(base),
+      stepFrom({ d1:{x:30,y:62}, d2:{x:60,y:74}, m1:{x:14,y:30}, m2:{x:40,y:52}, m3:{x:70,y:46}, f1:{x:35,y:20} }),
+      stepFrom({ d1:{x:32,y:58}, d2:{x:60,y:74}, m1:{x:8,y:16},  m2:{x:50,y:26}, m3:{x:62,y:18}, f1:{x:38,y:14} }),
+    ]};
+  S.plays.push(atk);
+
+  const def = { id:nextPlayId(), libId:'def-231', formation:'2-3-1',
+    name:'🛡️ Defensa: bloque y basculación con presión',
+    steps:[
+      stepFrom(base),
+      stepFrom({ d1:{x:42,y:72}, d2:{x:78,y:65}, m1:{x:30,y:52}, m2:{x:58,y:50}, m3:{x:85,y:40}, f1:{x:65,y:30} }),
+      stepFrom({ d1:{x:48,y:75}, d2:{x:80,y:58}, m1:{x:38,y:58}, m2:{x:55,y:55}, m3:{x:88,y:32}, f1:{x:60,y:24} }),
+    ]};
+  S.plays.push(def);
+
+  S.currentPlayId = atk.id;
+  S.currentStep   = 0;
+  S.libSeeded     = true;
+}
+
+function switchView(v) {
+  S.view = v;
+  document.querySelectorAll('#mtabs .mtab').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+  document.querySelector('.layout').style.display    = v === 'plantel'     ? 'grid' : 'none';
+  document.getElementById('slayout').style.display   = v === 'estrategias' ? 'grid' : 'none';
+  document.getElementById('ftabs').style.display     = v === 'plantel'     ? 'flex' : 'none';
+  const mob = document.getElementById('ftabs-mobile');
+  if (mob) mob.style.display = v === 'plantel' ? '' : 'none';
+  if (v === 'estrategias') renderStrategy();
+  save();
+}
+
+function renderMtabs() {
+  document.getElementById('mtabs').innerHTML = `
+    <button class="mtab${S.view==='plantel'?' active':''}" data-v="plantel" onclick="switchView('plantel')">🧩 Plantel</button>
+    <button class="mtab${S.view==='estrategias'?' active':''}" data-v="estrategias" onclick="switchView('estrategias')">🎯 Estrategias</button>`;
+}
+
+function newPlay() {
+  const positions = {};
+  fpos().forEach(pos => { const pl = slotP(pos.id); if (pl) positions[pl.id] = {x:pos.x, y:pos.y}; });
+  if (!Object.keys(positions).length) { toast('Primero armá la alineación en Plantel ⚠️'); return; }
+  const play = { id:nextPlayId(), name:'Jugada '+(S.plays.length+1), formation:S.formation, steps:[{positions}] };
+  S.plays.push(play);
+  S.currentPlayId = play.id;
+  S.currentStep = 0; S.playing = false;
+  toast('Jugada creada 🎯');
+  renderStrategy(); save();
+}
+
+function openPlay(id) { S.currentPlayId = id; S.currentStep = 0; S.playing = false; renderStrategy(); }
+
+function deletePlay(id, ev) {
+  ev?.stopPropagation();
+  const p = S.plays.find(x => x.id === id); if (!p) return;
+  if (!confirm(`¿Eliminar la jugada "${p.name}"?`)) return;
+  S.plays = S.plays.filter(x => x.id !== id);
+  if (S.currentPlayId === id) { S.currentPlayId = S.plays[0]?.id || null; S.currentStep = 0; }
+  renderStrategy(); save();
+}
+
+function setPlayName(val) {
+  const p = currentPlay(); if (!p) return;
+  p.name = val.trim() || p.name;
+  renderPlaysList(); save();
+}
+
+function addStep() {
+  const p = currentPlay(); if (!p) return;
+  const last = p.steps[p.steps.length-1];
+  p.steps.push({ positions: JSON.parse(JSON.stringify(last.positions)) });
+  S.currentStep = p.steps.length - 1;
+  toast('Paso agregado — arrastrá jugadoras para definir el movimiento');
+  renderStrategy(); save();
+}
+
+function deleteCurrentStep() {
+  const p = currentPlay(); if (!p || p.steps.length <= 1) return;
+  p.steps.splice(S.currentStep, 1);
+  S.currentStep = Math.min(S.currentStep, p.steps.length - 1);
+  renderStrategy(); save();
+}
+
+function selectStep(idx) {
+  S.playing = false; S.currentStep = idx;
+  renderStepTabs(); renderStrategyPitch(); renderPlayBtn();
+}
+
+function renderStrategy() {
+  renderMtabs(); renderPlaysList(); renderPlayMeta(); renderStepTabs(); renderStrategyPitch(); renderPlayBtn();
+}
+
+function renderPlaysList() {
+  document.getElementById('playcount').textContent = S.plays.length;
+  const el = document.getElementById('playslist');
+  if (!S.plays.length) { el.innerHTML = '<div style="color:var(--txt2);font-size:.8rem;text-align:center;padding:20px">Creá tu primera jugada</div>'; return; }
+  el.innerHTML = S.plays.map(p => `
+    <div class="playcard${p.id===S.currentPlayId?' active':''}" onclick="openPlay(${p.id})">
+      <div class="pi">
+        <div class="pname">${p.name}</div>
+        <div class="psub">${p.steps.length} paso${p.steps.length>1?'s':''} · ${p.formation}</div>
+      </div>
+      <button class="bico" onclick="deletePlay(${p.id}, event)">🗑</button>
+    </div>`).join('');
+}
+
+function renderPlayMeta() {
+  const p = currentPlay();
+  const body = document.getElementById('play-meta-body');
+  if (!p) { body.innerHTML = '<div style="font-size:.75rem;color:var(--txt2)">Ninguna jugada seleccionada</div>'; return; }
+  body.innerHTML = `
+    <input class="pmname-input" value="${p.name}" onchange="setPlayName(this.value)">
+    <div class="st"><span class="sl">Formación</span><span class="sv">${p.formation}</span></div>
+    <div class="st"><span class="sl">Pasos</span><span class="sv">${p.steps.length}</span></div>`;
+}
+
+function renderStepTabs() {
+  const p = currentPlay();
+  const bar = document.getElementById('steps-bar');
+  if (!p) { bar.innerHTML = ''; return; }
+  bar.innerHTML = p.steps.map((s,i) =>
+    `${i>0?'<span class="step-arrow-sep">→</span>':''}<button class="step-btn${i===S.currentStep?' active':''}" onclick="selectStep(${i})">${i+1}</button>`
+  ).join('');
+}
+
+function renderPlayBtn() {
+  const btn = document.getElementById('btn-playpause'); if (!btn) return;
+  btn.textContent = S.playing ? '⏸ Pausar' : '▶ Reproducir';
+}
+
+let _lastPlayId = null;
+function renderStrategyPitch() {
+  const pitch = document.getElementById('spitch');
+  const arrowsSvg = document.getElementById('tk-arrows');
+  const p = currentPlay();
+  if (!p) { pitch.querySelectorAll('.tk').forEach(e=>e.remove()); arrowsSvg.innerHTML=''; _lastPlayId=null; return; }
+  if (_lastPlayId !== p.id) { pitch.querySelectorAll('.tk').forEach(e=>e.remove()); _lastPlayId=p.id; }
+
+  const step = p.steps[S.currentStep];
+  const prevStep = S.currentStep > 0 ? p.steps[S.currentStep-1] : null;
+  const showArrows = document.getElementById('chk-arrows')?.checked;
+  const activeIds = new Set(Object.keys(step.positions).map(Number));
+
+  pitch.querySelectorAll('.tk').forEach(el => {
+    const pid = parseInt(el.id.replace('tk-',''));
+    if (!activeIds.has(pid)) el.remove();
+  });
+
+  activeIds.forEach(pid => {
+    const pl = byId(pid); if (!pl) return;
+    const pos = step.positions[pid];
+    let el = document.getElementById('tk-'+pid);
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'tk'; el.id = 'tk-'+pid;
+      const [bg] = avc(pl.id), rc_ = RC[PM[pl.position]||'mid'];
+      el.style.background = bg; el.style.borderColor = rc_.bg;
+      el.innerHTML = `<div class="tk-ini">${dispIni(pl)}</div><div class="tk-nm">${dispName(pl).split(' ')[0]}</div>`;
+      el.addEventListener('pointerdown', e => startDragToken(e, pid));
+      el.style.left = pos.x+'%'; el.style.top = pos.y+'%';
+      pitch.appendChild(el);
+    } else {
+      el.style.left = pos.x+'%'; el.style.top = pos.y+'%';
+    }
+  });
+
+  let arrowHtml = `<defs><marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,.75)"/></marker></defs>`;
+  if (showArrows && prevStep) {
+    Object.keys(step.positions).forEach(pidStr => {
+      const pid = parseInt(pidStr);
+      const a = prevStep.positions[pid], b = step.positions[pid];
+      if (!a || !b) return;
+      if (Math.abs(a.x-b.x) < 0.5 && Math.abs(a.y-b.y) < 0.5) return;
+      arrowHtml += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="rgba(255,255,255,.75)" stroke-width="0.8" stroke-dasharray="2,1.4" marker-end="url(#ah)"/>`;
+    });
+  }
+  arrowsSvg.innerHTML = arrowHtml;
+}
+
+// ─── TOKEN DRAG ──────────────────────────────────────────────────────
+let dragTok = null;
+function startDragToken(e, pid) {
+  if (S.playing) return;
+  const p = currentPlay(); if (!p) return;
+  e.preventDefault();
+  const el = document.getElementById('tk-'+pid);
+  const pitch = document.getElementById('spitch');
+  el.classList.add('dragging');
+  el.setPointerCapture?.(e.pointerId);
+  dragTok = { pid, pitch, el, x:null, y:null };
+  const move = ev => {
+    if (!dragTok) return;
+    const r = dragTok.pitch.getBoundingClientRect();
+    let x = ((ev.clientX - r.left) / r.width) * 100;
+    let y = ((ev.clientY - r.top)  / r.height) * 100;
+    x = Math.max(2, Math.min(98, x)); y = Math.max(2, Math.min(98, y));
+    dragTok.el.style.left = x+'%'; dragTok.el.style.top = y+'%';
+    dragTok.x = x; dragTok.y = y;
+  };
+  const up = () => {
+    if (dragTok) {
+      dragTok.el.classList.remove('dragging');
+      if (dragTok.x != null) {
+        const cp = currentPlay();
+        if (cp) { cp.steps[S.currentStep].positions[dragTok.pid] = {x:dragTok.x, y:dragTok.y}; save(); }
+      }
+      renderStrategyPitch();
+    }
+    dragTok = null;
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+}
+
+// ─── PLAYBACK ────────────────────────────────────────────────────────
+function togglePlay() {
+  const p = currentPlay(); if (!p) return;
+  if (p.steps.length < 2) { toast('Agregá al menos 2 pasos para reproducir ▶'); return; }
+  if (S.playing) { S.playing = false; renderPlayBtn(); return; }
+  if (S.currentStep >= p.steps.length - 1) S.currentStep = 0;
+  S.playing = true; renderPlayBtn(); renderStrategyPitch(); renderStepTabs();
+  playStep();
+}
+function playStep() {
+  const p = currentPlay();
+  if (!S.playing || !p) return;
+  if (S.currentStep >= p.steps.length - 1) { S.playing = false; renderPlayBtn(); return; }
+  setTimeout(() => {
+    if (!S.playing) return;
+    S.currentStep++; renderStrategyPitch(); renderStepTabs(); playStep();
+  }, 1500);
+}
+
+// ─── BACKUP / RESTORE ────────────────────────────────────────────────
+function exportData() {
+  // Strip all ephemeral UI state before exporting
+  const { editId, selSlot, playing, _session, ...clean } = S;
+  const blob = new Blob([JSON.stringify(clean, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${(S.teamName||'equipo').trim().replace(/\s+/g,'_')}-backup.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  toast('Backup descargado 💾');
+}
+
+function importData(ev) {
+  const file = ev.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !Array.isArray(data.players)) throw new Error('formato inválido');
+      // Sanitize ephemeral fields before merging
+      const { editId, selSlot, playing, _session, ...clean } = data;
+      S = { ...S, ...clean };
+      if (!Array.isArray(S.plays)) S.plays = [];
+      if (!FMS[S.formation]) { S.formation = '2-3-1'; S.lineup = {}; }
+      _lastPlayId = null;
+      document.getElementById('tn-display').textContent = S.teamName;
+      render(); renderMtabs(); switchView(S.view || 'plantel');
+      toast('Backup importado ✅');
+    } catch (err) {
+      toast('No se pudo importar el archivo ⚠️');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+// ─── TEAM NAME ───────────────────────────────────────────────────────
+function startEditName() {
+  const d = document.getElementById('tn-display'), i = document.getElementById('tn-input');
+  i.value = S.teamName; d.style.display = 'none'; i.style.display = 'inline'; i.focus(); i.select();
+}
+function saveName() {
+  const d = document.getElementById('tn-display'), i = document.getElementById('tn-input');
+  S.teamName = i.value.trim() || S.teamName;
+  d.textContent = S.teamName; d.style.display = 'inline'; i.style.display = 'none'; save();
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────
+function toast(msg) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2200);
+}
+
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }));
+
+// ─── GIF ENCODER (inline, sin dependencias externas) ─────────────────
+const GifMaker = (() => {
+  function lzw(idx, minBits) {
+    const CLR = 1 << minBits, EOF = CLR + 1;
+    let nc = EOF+1, bits = minBits+1, max = 1<<bits;
+    const out=[], dict=new Map(); let buf=0, bl=0;
+    const emit = c => { buf|=c<<bl; bl+=bits; while(bl>=8){out.push(buf&0xFF);buf>>>=8;bl-=8;} };
+    const reset = () => { dict.clear(); nc=EOF+1; bits=minBits+1; max=1<<bits; };
+    reset(); emit(CLR);
+    let p = idx[0];
+    for (let i=1; i<idx.length; i++) {
+      const s=idx[i], k=p*4096+s;
+      if (dict.has(k)) { p=dict.get(k); }
+      else {
+        emit(p);
+        if (nc<4096) { dict.set(k,nc++); if(nc>max&&bits<12){bits++;max<<=1;} }
+        else { emit(CLR); reset(); }
+        p=s;
+      }
+    }
+    emit(p); emit(EOF); if(bl>0) out.push(buf&0xFF);
+    return out;
+  }
+
+  function frame(imgData, W, H) {
+    const d=imgData.data, cm=new Map(), pal=[], idx=new Uint8Array(W*H);
+    for (let i=0; i<W*H; i++) {
+      const r=d[i*4],g=d[i*4+1],b=d[i*4+2], key=(r<<16)|(g<<8)|b;
+      if (!cm.has(key)) {
+        if (pal.length<768) { cm.set(key,pal.length/3); pal.push(r,g,b); }
+        else { // nearest color fallback
+          let best=0,bd=Infinity;
+          for(let j=0;j<pal.length;j+=3){const dr=r-pal[j],dg=g-pal[j+1],db=b-pal[j+2],dist=dr*dr+dg*dg+db*db;if(dist<bd){bd=dist;best=j/3;}}
+          cm.set(key,best);
+        }
+      }
+      idx[i]=cm.get(key);
+    }
+    let bits=2; while((1<<bits)<pal.length/3) bits++;
+    const tLen=1<<bits; while(pal.length<tLen*3) pal.push(0,0,0);
+    return {idx,pal,bits};
+  }
+
+  function encode(frames, W, H) {
+    const b=[], u=(...v)=>v.forEach(x=>b.push(x&0xFF)), s=t=>[...t].forEach(c=>b.push(c.charCodeAt(0))), w16=n=>u(n,n>>8);
+    s('GIF89a'); w16(W); w16(H); u(0,0,0);
+    u(0x21,0xFF,0x0B); s('NETSCAPE2.0'); u(0x03,0x01,0x00,0x00,0x00);
+    for (const {imgData,delay} of frames) {
+      const {idx,pal,bits}=frame(imgData,W,H), d10=Math.max(2,Math.round(delay/10));
+      u(0x21,0xF9,0x04,0x04); w16(d10); u(0,0);
+      u(0x2C); w16(0); w16(0); w16(W); w16(H); u(0x80|(bits-1));
+      for(let i=0;i<(1<<bits)*3;i++) u(pal[i]??0);
+      const lzwData=lzw(idx,bits); u(bits);
+      for(let o=0;o<lzwData.length;o+=255){const c=lzwData.slice(o,Math.min(o+255,lzwData.length));u(c.length);c.forEach(x=>u(x));}
+      u(0);
+    }
+    u(0x3B);
+    return new Uint8Array(b);
+  }
+  return {encode};
+})();
+
+// ─── GIF EXPORT ──────────────────────────────────────────────────────
+function drawPitchFrame(canvas, step, prevStep, showArrows) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const sx = W / 100, sy = H / 154;
+
+  // Grass stripes
+  for (let i = 0; i < 8; i++) {
+    ctx.fillStyle = i % 2 === 0 ? '#1a4a1a' : '#1e5c1e';
+    ctx.fillRect(0, Math.round(i * H / 7), W, Math.ceil(H / 7) + 1);
+  }
+
+  // Field lines helper
+  const strk = (color, lw, fn) => {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = lw;
+    ctx.beginPath(); fn(); ctx.stroke(); ctx.restore();
+  };
+
+  strk('rgba(255,255,255,.25)', 0.8, () => ctx.rect(2*sx, 2*sy, 96*sx, 150*sy));
+  strk('rgba(255,255,255,.25)', 0.8, () => { ctx.moveTo(2*sx,77*sy); ctx.lineTo(98*sx,77*sy); });
+  strk('rgba(255,255,255,.22)', 0.8, () => ctx.arc(50*sx, 77*sy, 12*sx, 0, Math.PI*2));
+  strk('rgba(255,255,255,.2)',  0.7, () => ctx.rect(26*sx, 2*sy,  48*sx, 20*sy));
+  strk('rgba(255,255,255,.2)',  0.7, () => ctx.rect(38*sx, 2*sy,  24*sx,  8*sy));
+  strk('rgba(255,255,255,.2)',  0.7, () => ctx.rect(26*sx, 132*sy, 48*sx, 20*sy));
+  strk('rgba(255,255,255,.2)',  0.7, () => ctx.rect(38*sx, 144*sy, 24*sx,  8*sy));
+
+  const dot = (cx, cy, r, c) => { ctx.beginPath(); ctx.arc(cx*sx,cy*sy,r,0,Math.PI*2); ctx.fillStyle=c; ctx.fill(); };
+  dot(50, 77,  1.5, 'rgba(255,255,255,.4)');
+  dot(50, 16,  1.2, 'rgba(255,255,255,.35)');
+  dot(50, 138, 1.2, 'rgba(255,255,255,.35)');
+
+  // Goals
+  ['top','bot'].forEach(side => {
+    const y = side==='top' ? 0 : 151.5*sy;
+    ctx.fillStyle = 'rgba(255,255,255,.1)';
+    ctx.strokeStyle = 'rgba(255,255,255,.35)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.rect(40*sx, y, 20*sx, 2.5*sy);
+    ctx.fill(); ctx.stroke();
+  });
+
+  // Arrows from prev step
+  if (showArrows && prevStep) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 2]);
+    Object.keys(step.positions).forEach(pid => {
+      const a = prevStep.positions[pid], b = step.positions[pid];
+      if (!a || !b || (Math.abs(a.x-b.x)<0.5 && Math.abs(a.y-b.y)<0.5)) return;
+      const [ax,ay,bx,by] = [a.x/100*W, a.y/100*H, b.x/100*W, b.y/100*H];
+      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+      // Arrowhead
+      ctx.setLineDash([]);
+      const ang = Math.atan2(by-ay, bx-ax), hs = 7;
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath();
+      ctx.moveTo(bx,by);
+      ctx.lineTo(bx-hs*Math.cos(ang-.4), by-hs*Math.sin(ang-.4));
+      ctx.lineTo(bx-hs*Math.cos(ang+.4), by-hs*Math.sin(ang+.4));
+      ctx.closePath(); ctx.fill();
+      ctx.setLineDash([4,2]);
+    });
+    ctx.restore();
+  }
+
+  // Player tokens
+  const r = Math.min(W, H) * 0.055;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  Object.keys(step.positions).forEach(pid => {
+    const pl = byId(parseInt(pid)); if (!pl) return;
+    const { x, y } = step.positions[pid];
+    const px = x/100*W, py = y/100*H;
+    const [bg] = avc(pl.id);
+    const rc_ = RC[PM[pl.position]||'mid'];
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2);
+    ctx.fillStyle = bg; ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = rc_.bg; ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(r*.65)}px Arial`;
+    ctx.fillText(dispIni(pl), px, py);
+  });
+}
+
+async function downloadGif() {
+  const p = currentPlay();
+  if (!p || p.steps.length < 2) { toast('Necesitás al menos 2 pasos ⚠️'); return; }
+
+  const btn = document.getElementById('btn-gif');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
+  toast('Generando GIF...');
+
+  // Render at max 280px (liviano para WhatsApp)
+  const pitchEl = document.getElementById('spitch');
+  const MAX = 280;
+  const scale = Math.min(1, MAX / pitchEl.offsetWidth, MAX / pitchEl.offsetHeight);
+  const W = Math.round(pitchEl.offsetWidth * scale);
+  const H = Math.round(pitchEl.offsetHeight * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const INTERP = 4, STEP_D = 700, TRANS_D = 150;
+  const frames = [];
+
+  const snap = (delay) => frames.push({ imgData: ctx.getImageData(0,0,W,H), delay });
+
+  // Frame inicial
+  drawPitchFrame(canvas, p.steps[0], null, false);
+  snap(STEP_D);
+
+  for (let i = 0; i < p.steps.length - 1; i++) {
+    const sA = p.steps[i], sB = p.steps[i+1];
+    for (let f = 1; f <= INTERP; f++) {
+      const t = f / INTERP;
+      const interp = {};
+      Object.keys(sB.positions).forEach(pid => {
+        const a = sA.positions[pid], b = sB.positions[pid];
+        interp[pid] = a ? {x: a.x+(b.x-a.x)*t, y: a.y+(b.y-a.y)*t} : b;
+      });
+      const isLast = f === INTERP;
+      drawPitchFrame(canvas, {positions: interp}, isLast ? sA : null, isLast);
+      snap(isLast ? (i === p.steps.length-2 ? STEP_D*2 : STEP_D) : TRANS_D);
+    }
+  }
+
+  try {
+    // Ceder el hilo al browser antes de codificar (actualiza el toast)
+    await new Promise(r => setTimeout(r, 30));
+    const gifBytes = GifMaker.encode(frames, W, H);
+    const blob = new Blob([gifBytes], {type:'image/gif'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (p.name.replace(/[^\w\s-]/g,'').trim().replace(/\s+/g,'_') || 'jugada') + '.gif';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+    toast(`GIF listo ✅ · ${Math.round(blob.size/1024)} KB`);
+  } catch(e) {
+    console.error('GIF error:', e);
+    toast('Error generando el GIF ⚠️');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📥 GIF'; }
+  }
+}
+
+// ─── FIREBASE INIT & SYNC ────────────────────────────────────────────
+function showLoadingError(icon, title, msg) {
+  const lo = document.getElementById('loading-overlay');
+  lo.querySelector('.lo-spin')?.classList.remove('lo-spin');
+  lo.querySelector('.lo-icon').textContent = icon;
+  lo.querySelector('.lo-title').textContent = title;
+  document.getElementById('lo-msg').innerHTML = msg;
+  lo.style.display = 'flex';
+}
+
+function applyRemoteState(data) {
+  const { _session, editId, selSlot, playing, ...clean } = data;
+  S = { ...S, ...clean };
+  if (!Array.isArray(S.plays)) S.plays = [];
+  if (!FMS[S.formation]) { S.formation = '2-3-1'; S.lineup = {}; }
+  _lastPlayId = null;
+  document.getElementById('tn-display').textContent = S.teamName;
+  render();
+  renderMtabs();
+  // Update view display without calling save()
+  document.querySelector('.layout').style.display  = S.view === 'plantel'     ? 'grid' : 'none';
+  document.getElementById('slayout').style.display = S.view === 'estrategias' ? 'grid' : 'none';
+  document.getElementById('ftabs').style.display   = S.view === 'plantel'     ? 'flex' : 'none';
+  const mobFt = document.getElementById('ftabs-mobile');
+  if (mobFt) mobFt.style.display = S.view === 'plantel' ? '' : 'none';
+  if (S.view === 'estrategias') renderStrategy();
+}
+
+// Guard: detect unconfigured placeholder before connecting
+if (FIREBASE_CONFIG.apiKey.includes('REEMPLAZAR')) {
+  showLoadingError('⚙️', 'Configuración pendiente',
+    'Completá los datos de Firebase en el HTML.<br>Buscá <span class="lo-code">FIREBASE_CONFIG</span> en el código y reemplazá los valores con los de tu proyecto en <b>console.firebase.google.com</b>.');
+} else {
+  // Real-time listener
+  DB_REF.on('value', snapshot => {
+    const data = snapshot.val();
+
+    if (!initialized) {
+      initialized = true;
+      if (data) {
+        applyRemoteState(data);
+      } else {
+        // First run — seed defaults
+        S.players = defaultPlayers();
+        if (!Array.isArray(S.plays)) S.plays = [];
+        if (!S.view) S.view = 'plantel';
+        seedLibraryPlays();
+        document.getElementById('tn-display').textContent = S.teamName;
+        render(); renderMtabs(); switchView(S.view);
+      }
+      // Hide loading overlay
+      document.getElementById('loading-overlay').style.display = 'none';
+      if (!data) save();
+      return;
+    }
+
+    // Real-time update from another client
+    if (!data || data._session === SESSION_ID) return;
+    applyRemoteState(data);
+    toast('🔄 Equipo actualizó la pizarra');
+
+  }, error => {
+    showLoadingError('🔴', 'Error de conexión',
+      `No se pudo conectar con Firebase.<br><span style="font-size:.8rem">${error.message}</span>`);
+  });
+
+  // Connection indicator
+  db.ref('.info/connected').on('value', snap => {
+    const el = document.getElementById('sync-status'); if (!el) return;
+    const on = snap.val();
+    el.innerHTML = `<span class="sync-dot ${on ? 'online' : 'offline'}"></span>${on ? 'Online' : 'Offline'}`;
+    el.style.color = on ? 'var(--green)' : 'var(--red)';
+  });
+}
+</script>
+</body>
+</html>
