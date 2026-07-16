@@ -1,23 +1,22 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { settings, players, saveSettings } from '../lib/stores.js';
+  import { settings, players, ui } from '../lib/stores.js';
   import { isAvail, avc, dispIni, ratingColor } from '../lib/helpers.js';
   import { FORMATIONS, ROLE_COLORS, POS_TO_ROLE } from '../lib/constants.js';
 
-  export let slotId;
+  export let slotId;  // passed from App.svelte via $ui.selSlot
 
   const dispatch = createEventDispatcher();
 
-  $: slots = FORMATIONS[$settings.formation]?.positions ?? [];
-  $: slot  = slots.find(s => s.id === slotId);
-  $: rc    = slot ? ROLE_COLORS[slot.role] : null;
-  $: lineup = $settings.lineup ?? {};
+  $: slots   = FORMATIONS[$settings.formation]?.positions ?? [];
+  $: slot    = slots.find(s => s.id === slotId);
+  $: rc      = slot ? ROLE_COLORS[slot.role] : null;
+  $: lineup  = $settings.lineup ?? {};
 
-  // Available players not already in lineup (but allow the one already in this slot)
   $: candidates = $players
     .filter(p => {
       if (!isAvail(p)) return false;
-      const inThisSlot = lineup[slotId] === p.id;
+      const inThisSlot  = lineup[slotId] === p.id;
       const inOtherSlot = Object.entries(lineup).some(([k, v]) => v === p.id && k !== slotId);
       return !inOtherSlot || inThisSlot;
     })
@@ -28,16 +27,15 @@
   }
 
   function assign(playerId) {
-    const newLineup = { ...lineup, [slotId]: playerId };
-    saveSettings({ lineup: newLineup });
-    dispatch('close');
+    const sid = $ui.selSlot;
+    if (!sid) return;
+    dispatch('assign', { slotId: sid, playerId });
   }
 
   function clearSlot() {
-    const newLineup = { ...lineup };
-    delete newLineup[slotId];
-    saveSettings({ lineup: newLineup });
-    dispatch('close');
+    const sid = $ui.selSlot;
+    if (!sid) return;
+    dispatch('clear', { slotId: sid });
   }
 
   function onKeydown(e) {

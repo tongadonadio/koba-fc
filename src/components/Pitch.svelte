@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { settings, players, saveSettings } from '../lib/stores.js';
+  import { settings, players, saveSettings, ui } from '../lib/stores.js';
   import { avc, dispIni, ratingColor } from '../lib/helpers.js';
   import { FORMATIONS, ROLE_COLORS } from '../lib/constants.js';
 
@@ -13,10 +13,6 @@
 
   let dragOverSlot = null;
 
-  function getPlayer(slotId) {
-    const pid = lineup[slotId];
-    return pid ? $players.find(p => p.id === pid) : null;
-  }
 
   function playerIndex(player) {
     return $players.findIndex(p => p.id === player.id);
@@ -68,7 +64,7 @@
   }
 
   function clickSlot(slotId) {
-    dispatch('openPicker', { slotId });
+    ui.update(s => ({ ...s, selSlot: slotId }));
   }
 </script>
 
@@ -101,7 +97,8 @@
 
     <!-- Position slots -->
     {#each slots as slot}
-      {@const player = getPlayer(slot.id)}
+      {@const pid    = lineup[slot.id]}
+      {@const player = pid ? ($players.find(p => p.id === pid) ?? null) : null}
       {@const rc = ROLE_COLORS[slot.role]}
       {@const isDragTarget = dragOverSlot === slot.id}
       <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -110,14 +107,13 @@
         class:filled={!!player}
         class:drag-over={isDragTarget}
         style="left:{slot.x}%; top:{slot.y}%;"
-        on:click={() => clickSlot(slot.id)}
         on:dragover={e => onDragOver(e, slot.id)}
         on:dragleave={onDragLeave}
         on:drop={e => onDrop(e, slot.id)}
       >
         {#if player}
-          {@const idx = playerIndex(player)}
-          {@const [bg, tc] = avc(player.id, idx)}
+          {@const idx = $players.findIndex(p => p.id === player.id)}
+          {@const [bg, tc] = avc(player.id, idx >= 0 ? idx : 0)}
           {@const [n1, n2] = splitName(player.nickname || player.name)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
@@ -125,6 +121,7 @@
             style="border-color:{rc?.bg ?? '#fff'}; background:{bg}22;"
             draggable="true"
             on:dragstart={e => onPlayerDragStart(e, player)}
+            on:click={() => clickSlot(slot.id)}
           >
             <div class="slot-av" style="background:{bg}; color:{tc};">{dispIni(player)}</div>
             <div class="slot-nm">
@@ -135,7 +132,8 @@
             <button class="slot-rm" on:click={e => removeSlot(slot.id, e)}>✕</button>
           </div>
         {:else}
-          <div class="slot-inner empty-inner">
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="slot-inner empty-inner" on:click={() => clickSlot(slot.id)}>
             <span class="slot-lbl">{slot.lbl}</span>
           </div>
         {/if}
@@ -156,9 +154,9 @@
   .pitch {
     position: relative;
     width: 100%;
-    max-width: 360px;
+    max-width: 520px;
     aspect-ratio: 65 / 100;
-    max-height: calc(100vh - 160px);
+    max-height: calc(100vh - 100px);
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 0 60px rgba(0,160,0,.08), 0 0 0 1px var(--border);
