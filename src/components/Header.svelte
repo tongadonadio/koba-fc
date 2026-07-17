@@ -4,8 +4,6 @@
 
   const dispatch = createEventDispatcher();
 
-  const FORMATIONS_LIST = ['2-3-1', '3-2-1', '3-1-2'];
-
   let editingName = false;
   let nameInput = '';
 
@@ -29,10 +27,6 @@
     saveSettings({ view });
   }
 
-  function setFormation(f) {
-    saveSettings({ formation: f });
-  }
-
   // File import handler
   function handleImportFile(e) {
     const file = e.target.files[0];
@@ -46,7 +40,7 @@
   <div class="header-main">
     <!-- Brand / team name -->
     <div class="brand">
-      <span class="logo">⚽</span>
+      <img src="{import.meta.env.BASE_URL}logo.png" alt="Koba FC" class="logo-img" />
       {#if editingName}
         <!-- svelte-ignore a11y-autofocus -->
         <input
@@ -67,14 +61,24 @@
     <nav class="tabs">
       <button
         class="tab"
-        class:active={$settings.view === 'plantel'}
-        on:click={() => setView('plantel')}
-      >🧩 Plantel</button>
+        class:active={$settings.view === 'alineacion'}
+        on:click={() => setView('alineacion')}
+      ><span class="tab-ico">🗒️</span><span class="tab-lbl">Alineación</span></button>
       <button
         class="tab"
         class:active={$settings.view === 'estrategias'}
         on:click={() => setView('estrategias')}
-      >🎯 Estrategias</button>
+      ><span class="tab-ico">🎯</span><span class="tab-lbl">Estrategias</span></button>
+      <button
+        class="tab"
+        class:active={$settings.view === 'plantel'}
+        on:click={() => setView('plantel')}
+      ><span class="tab-ico">🧩</span><span class="tab-lbl">Plantel</span></button>
+      <button
+        class="tab"
+        class:active={$settings.view === 'historial'}
+        on:click={() => setView('historial')}
+      ><span class="tab-ico">📋</span><span class="tab-lbl">Historial</span></button>
     </nav>
 
     <!-- Right actions (hidden on mobile) -->
@@ -87,19 +91,6 @@
       </label>
     </div>
   </div>
-
-  <!-- Formation tabs (plantel only, hidden on mobile) -->
-  {#if $settings.view === 'plantel'}
-    <div class="formation-tabs">
-      {#each FORMATIONS_LIST as f}
-        <button
-          class="ftab"
-          class:active={$settings.formation === f}
-          on:click={() => setFormation(f)}
-        >{f}</button>
-      {/each}
-    </div>
-  {/if}
 </header>
 
 <style>
@@ -126,7 +117,7 @@
     flex-shrink: 0;
   }
 
-  .logo { font-size: 1.25rem; }
+  .logo-img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 
   .team-name {
     font-size: 1rem;
@@ -160,6 +151,9 @@
   }
 
   .tab {
+    display: flex;
+    align-items: center;
+    gap: 5px;
     padding: 5px 12px;
     border-radius: 5px;
     border: none;
@@ -173,6 +167,8 @@
   }
   .tab.active { background: var(--blue); color: #000; }
   .tab:hover:not(.active) { background: var(--card); color: var(--txt); }
+
+  .tab-ico { font-size: 1rem; line-height: 1; }
 
   .actions {
     display: flex;
@@ -195,31 +191,14 @@
     50% { opacity: .3; }
   }
 
-  .formation-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 5px 0 7px;
-  }
-
-  .ftab {
-    padding: 4px 13px;
-    border-radius: 5px;
-    border: none;
-    background: var(--bg);
-    color: var(--txt2);
-    font-size: .78rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .15s;
-  }
-  .ftab.active {
-    background: var(--green);
-    color: #000;
-  }
-  .ftab:hover:not(.active) { background: var(--card); color: var(--txt); }
-
   @media (max-width: 768px) {
     .actions { display: none; }
-    .formation-tabs { display: none; }
+    .tab { padding: 6px 9px; font-size: .72rem; }
+  }
+
+  @media (max-width: 480px) {
+    .tab { padding: 7px 9px; }
+    .tab-lbl { display: none; }
+    .tab-ico { font-size: 1.05rem; }
   }
 </style>

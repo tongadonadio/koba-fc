@@ -1,23 +1,47 @@
 <script>
-  import { initialized, settings, players, showToast } from './lib/stores.js';
+  import { get } from 'svelte/store';
+  import { initialized, settings, players, saveSettings, showToast, ui } from './lib/stores.js';
   import Header from './components/Header.svelte';
   import PlantelView from './components/PlantelView.svelte';
+  import AlineacionView from './components/AlineacionView.svelte';
   import StrategyView from './components/StrategyView.svelte';
+  import HistorialView from './components/HistorialView.svelte';
   import Toast from './components/Toast.svelte';
   import PlayerModal from './modals/PlayerModal.svelte';
   import PositionPickerModal from './modals/PositionPickerModal.svelte';
+  import MatchModal from './modals/MatchModal.svelte';
 
   // ── Modal state ──────────────────────────────────────────────────────────────
-  // type: null | 'player' | 'picker'
-  // data: player object (for 'player') | { slotId } (for 'picker')
+  // type: null | 'player' | 'picker' | 'match'
+  // data: player object (for 'player') | { slotId } (for 'picker') | match object or null (for 'match')
   let modalState = { type: null, data: null };
 
   function openPlayerModal(e) {
     modalState = { type: 'player', data: e.detail ?? null };
   }
 
-  function openPicker(e) {
-    modalState = { type: 'picker', data: e.detail };
+  function closePicker() {
+    ui.update(s => ({ ...s, selSlot: null }));
+  }
+
+  function handlePickerAssign(e) {
+    const { slotId, playerId } = e.detail;
+    const currentLineup = get(settings).lineup ?? {};
+    const newLineup = { ...currentLineup, [slotId]: playerId };
+    saveSettings({ lineup: newLineup });
+    closePicker();
+  }
+
+  function handlePickerClear(e) {
+    const { slotId } = e.detail;
+    const newLineup = { ...(get(settings).lineup ?? {}) };
+    delete newLineup[slotId];
+    saveSettings({ lineup: newLineup });
+    closePicker();
+  }
+
+  function openMatchModal(e) {
+    modalState = { type: 'match', data: e.detail ?? null };
   }
 
   function closeModal() {
@@ -59,8 +83,8 @@
 <!-- Loading overlay while Firestore initialises -->
 {#if !$initialized}
   <div class="loading-overlay">
-    <div class="spinner"></div>
-    <span class="loading-txt">Conectando con Firestore…</span>
+    <img src="{import.meta.env.BASE_URL}logo.png" alt="Koba FC" class="loading-logo" />
+    <span class="loading-txt">Conectando con el equipo…</span>
   </div>
 {:else}
   <Header
@@ -69,19 +93,29 @@
   />
 
   {#if $settings.view === 'plantel'}
-    <PlantelView
-      on:openPlayerModal={openPlayerModal}
-      on:openPicker={openPicker}
-    />
+    <PlantelView on:openPlayerModal={openPlayerModal} />
+  {:else if $settings.view === 'alineacion'}
+    <AlineacionView />
   {:else if $settings.view === 'estrategias'}
     <StrategyView />
+  {:else if $settings.view === 'historial'}
+    <HistorialView on:openMatch={openMatchModal} />
   {/if}
 
   <!-- Modals -->
   {#if modalState.type === 'player'}
     <PlayerModal player={modalState.data} on:close={closeModal} />
-  {:else if modalState.type === 'picker'}
-    <PositionPickerModal slotId={modalState.data?.slotId} on:close={closeModal} />
+  {/if}
+  {#if $ui.selSlot}
+    <PositionPickerModal
+      slotId={$ui.selSlot}
+      on:assign={handlePickerAssign}
+      on:clear={handlePickerClear}
+      on:close={closePicker}
+    />
+  {/if}
+  {#if modalState.type === 'match'}
+    <MatchModal match={modalState.data} on:close={closeModal} />
   {/if}
 
   <Toast />
@@ -99,6 +133,16 @@
     z-index: 9999;
   }
 
+  .loading-logo {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    animation: pulse-logo 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-logo {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: .6; transform: scale(.92); }
+  }
   .loading-txt {
     font-size: .88rem;
     color: var(--txt2);

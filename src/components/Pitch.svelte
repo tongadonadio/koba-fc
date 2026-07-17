@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { settings, players, saveSettings } from '../lib/stores.js';
+  import { settings, players, saveSettings, ui } from '../lib/stores.js';
   import { avc, dispIni, ratingColor } from '../lib/helpers.js';
   import { FORMATIONS, ROLE_COLORS } from '../lib/constants.js';
 
@@ -13,10 +13,6 @@
 
   let dragOverSlot = null;
 
-  function getPlayer(slotId) {
-    const pid = lineup[slotId];
-    return pid ? $players.find(p => p.id === pid) : null;
-  }
 
   function playerIndex(player) {
     return $players.findIndex(p => p.id === player.id);
@@ -68,7 +64,7 @@
   }
 
   function clickSlot(slotId) {
-    dispatch('openPicker', { slotId });
+    ui.update(s => ({ ...s, selSlot: slotId }));
   }
 </script>
 
@@ -101,7 +97,8 @@
 
     <!-- Position slots -->
     {#each slots as slot}
-      {@const player = getPlayer(slot.id)}
+      {@const pid    = lineup[slot.id]}
+      {@const player = pid ? ($players.find(p => p.id === pid) ?? null) : null}
       {@const rc = ROLE_COLORS[slot.role]}
       {@const isDragTarget = dragOverSlot === slot.id}
       <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -110,23 +107,23 @@
         class:filled={!!player}
         class:drag-over={isDragTarget}
         style="left:{slot.x}%; top:{slot.y}%;"
-        on:click={() => clickSlot(slot.id)}
         on:dragover={e => onDragOver(e, slot.id)}
         on:dragleave={onDragLeave}
         on:drop={e => onDrop(e, slot.id)}
       >
         {#if player}
-          {@const idx = playerIndex(player)}
-          {@const [bg, tc] = avc(player.id, idx)}
+          {@const idx = $players.findIndex(p => p.id === player.id)}
+          {@const [bg, tc] = avc(player.id, idx >= 0 ? idx : 0)}
           {@const [n1, n2] = splitName(player.nickname || player.name)}
           <!-- svelte-ignore a11y-no-static-element-interactions -->
           <div
             class="slot-inner filled-inner"
-            style="border-color:{rc?.bg ?? '#fff'}; background:{bg}22;"
+            style="border-color:{rc?.bg ?? '#fff'}; background:{bg}; color:{tc};"
             draggable="true"
             on:dragstart={e => onPlayerDragStart(e, player)}
+            on:click={() => clickSlot(slot.id)}
           >
-            <div class="slot-av" style="background:{bg}; color:{tc};">{dispIni(player)}</div>
+            <div class="slot-ini">{dispIni(player)}</div>
             <div class="slot-nm">
               <span>{n1}</span>
               {#if n2}<span>{n2}</span>{/if}
@@ -135,7 +132,8 @@
             <button class="slot-rm" on:click={e => removeSlot(slot.id, e)}>✕</button>
           </div>
         {:else}
-          <div class="slot-inner empty-inner">
+          <!-- svelte-ignore a11y-no-static-element-interactions -->
+          <div class="slot-inner empty-inner" on:click={() => clickSlot(slot.id)}>
             <span class="slot-lbl">{slot.lbl}</span>
           </div>
         {/if}
@@ -156,9 +154,9 @@
   .pitch {
     position: relative;
     width: 100%;
-    max-width: 360px;
+    max-width: 520px;
     aspect-ratio: 65 / 100;
-    max-height: calc(100vh - 160px);
+    max-height: calc(100vh - 100px);
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 0 60px rgba(0,160,0,.08), 0 0 0 1px var(--border);
@@ -231,24 +229,30 @@
 
   /* Filled slot */
   .filled-inner {
-    border: 2.5px solid;
+    border: 3px solid;
     gap: 1px;
+    box-shadow:
+      0 4px 10px rgba(0,0,0,.45),
+      0 1px 0 rgba(255,255,255,.08) inset;
+    transition: transform .2s, box-shadow .2s, filter .2s;
   }
   .slot.filled:hover .filled-inner {
-    filter: brightness(1.2);
-    transform: scale(1.05);
+    filter: brightness(1.15);
+    transform: translateY(-2px) scale(1.06);
+    box-shadow:
+      0 8px 16px rgba(0,0,0,.5),
+      0 1px 0 rgba(255,255,255,.1) inset;
   }
   .slot.drag-over .filled-inner {
     border-style: dashed;
     transform: scale(1.08);
   }
 
-  .slot-av {
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: .7rem;
-    flex-shrink: 0;
+  .slot-ini {
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5);
   }
 
   .slot-nm {
@@ -257,7 +261,7 @@
     line-height: 1.1;
     font-size: .46rem;
     font-weight: 700;
-    color: #fff;
+    color: inherit;
     text-align: center;
     max-width: 50px;
     overflow: hidden;
