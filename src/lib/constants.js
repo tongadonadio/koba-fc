@@ -1,10 +1,10 @@
 export const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyA8Ihp9OGrH6ZmHDmfHvf_XM6ddlVPLj98',
-  authDomain: 'koba-fc.firebaseapp.com',
-  projectId: 'koba-fc',
-  storageBucket: 'koba-fc.firebasestorage.app',
-  messagingSenderId: '5519356971',
-  appId: '1:5519356971:web:70af6f32689a92cd90666e',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const FORMATIONS = {
