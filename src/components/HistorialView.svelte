@@ -14,7 +14,9 @@
   function computeStats(playerId) {
     let played = 0, goals = 0, assists = 0, yellow = 0, red = 0, wins = 0, draws = 0, losses = 0;
     for (const m of $matches) {
-      if (!Object.values(m.lineup || {}).includes(playerId)) continue;
+      const inLineup = Object.values(m.lineup || {}).includes(playerId);
+      const inSubs   = (m.substitutes || []).includes(playerId);
+      if (!inLineup && !inSubs) continue;
       played++;
       for (const ev of m.events || []) {
         if (ev.playerId !== playerId) continue;
@@ -73,7 +75,10 @@
 
   // ── Season table ─────────────────────────────────────────────────────────────
   $: allPlayerIds = [...new Set(
-    $matches.flatMap(m => Object.values(m.lineup || {}))
+    $matches.flatMap(m => [
+      ...Object.values(m.lineup || {}),
+      ...(m.substitutes || []),
+    ])
   )].filter(Boolean);
 
   $: statsRows = allPlayerIds
@@ -193,6 +198,21 @@
             <p class="no-data">Formación no registrada</p>
           {/if}
         </section>
+
+        <!-- Substitutes -->
+        {#if (selectedMatch.substitutes || []).length > 0}
+          <section class="detail-section">
+            <h3 class="section-title">Suplentes</h3>
+            <div class="subs-grid">
+              {#each selectedMatch.substitutes as sid}
+                {@const sp = getPlayer(sid)}
+                {#if sp}
+                  <div class="sub-chip">{dispName(sp)}{sp.number != null ? ' #'+sp.number : ''}</div>
+                {/if}
+              {/each}
+            </div>
+          </section>
+        {/if}
 
         <!-- Events -->
         <section class="detail-section">
@@ -545,6 +565,23 @@
   .ev-label { color: var(--txt2); font-size: .74rem; }
   .ev-player { color: var(--txt); font-weight: 600; }
   .ev-min { color: var(--txt2); font-size: .72rem; margin-left: auto; }
+
+  /* Substitutes */
+  .subs-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .sub-chip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: .78rem;
+    color: var(--txt);
+    font-weight: 600;
+  }
 
   .no-data {
     color: var(--txt2);

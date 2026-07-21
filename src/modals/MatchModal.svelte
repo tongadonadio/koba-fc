@@ -32,6 +32,7 @@
     goalsAgainst:  match.goalsAgainst  ?? 0,
     formation:     match.formation     ?? $settings.formation,
     lineup:        { ...(match.lineup  ?? {}) },
+    substitutes:   [...(match.substitutes ?? [])],
     events:        [...(match.events   ?? [])],
   } : {
     date:         today(),
@@ -41,17 +42,41 @@
     goalsAgainst: 0,
     formation:    $settings.formation,
     lineup:       {},
+    substitutes:  [],
     events:       [],
   };
 
   // ── Reactive slots for current formation ────────────────────────────────────
   $: positions = FORMATIONS[form.formation]?.positions ?? [];
 
-  // Players assigned in current lineup (for event selector)
-  $: assignedPlayers = Object.entries(form.lineup)
-    .filter(([, pid]) => !!pid)
-    .map(([, pid]) => $players.find(p => p.id === pid))
-    .filter(Boolean);
+  // IDs of players in the starting lineup
+  $: lineupPlayerIds = new Set(Object.values(form.lineup).filter(Boolean));
+
+  // Players available to add as substitutes (not in lineup, not already added)
+  $: availableForSub = $players.filter(
+    p => !lineupPlayerIds.has(p.id) && !form.substitutes.includes(p.id)
+  );
+
+  // All players that participated (lineup + substitutes), for event selector
+  $: assignedPlayers = [
+    ...Object.values(form.lineup).filter(Boolean).map(id => $players.find(p => p.id === id)),
+    ...form.substitutes.map(id => $players.find(p => p.id === id)),
+  ].filter(Boolean);
+
+  // ── Substitute state ─────────────────────────────────────────────────────────
+  let newSub = '';
+
+  function addSub() {
+    if (!newSub) return;
+    form.substitutes = [...form.substitutes, newSub];
+    newSub = '';
+  }
+
+  function removeSub(id) {
+    form.substitutes = form.substitutes.filter(sid => sid !== id);
+    // Remove events for this player
+    form.events = form.events.filter(ev => ev.playerId !== id);
+  }
 
   // ── New event state ──────────────────────────────────────────────────────────
   let newEv = { type: 'goal', playerId: '', minute: '' };
@@ -112,6 +137,7 @@
       goalsAgainst: Number(form.goalsAgainst),
       formation:    form.formation,
       lineup:       form.lineup,
+      substitutes:  form.substitutes,
       events:       form.events,
     };
 
@@ -219,7 +245,34 @@
       {/each}
     </div>
 
-    <!-- ── 3. Eventos ── -->
+    <!-- ── 3. Suplentes ── -->
+    <div class="msection-title">Suplentes que ingresaron</div>
+
+    {#if form.substitutes.length > 0}
+      <ul class="subs-list">
+        {#each form.substitutes as sid (sid)}
+          {@const sp = $players.find(p => p.id === sid)}
+          {#if sp}
+            <li class="sub-item">
+              <span class="sub-name">{dispName(sp)}{sp.number != null ? ' #'+sp.number : ''}</span>
+              <button class="ev-remove" on:click={() => removeSub(sid)} title="Quitar">✕</button>
+            </li>
+          {/if}
+        {/each}
+      </ul>
+    {/if}
+
+    <div class="ev-row">
+      <select class="fi ev-player-select" bind:value={newSub}>
+        <option value="">Agregar suplente…</option>
+        {#each availableForSub as p (p.id)}
+          <option value={p.id}>{dispName(p)}{p.number != null ? ' #'+p.number : ''}</option>
+        {/each}
+      </select>
+      <button class="btn btn-s ev-add-btn" on:click={addSub} disabled={!newSub}>+ Agregar</button>
+    </div>
+
+    <!-- ── 4. Eventos ── -->
     <div class="msection-title">Eventos del partido</div>
 
     {#if form.events.length > 0}
@@ -450,6 +503,31 @@
     padding: 5px 6px;
     font-size: .78rem;
     min-width: 0;
+  }
+
+  /* Substitutes */
+  .subs-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sub-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card);
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: .82rem;
+  }
+
+  .sub-name {
+    font-weight: 600;
+    color: var(--txt);
   }
 
   /* Events */
